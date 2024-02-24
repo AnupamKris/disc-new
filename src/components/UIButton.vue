@@ -1,0 +1,25 @@
+<template>
+  <button>{{ text }}</button>
+</template>
+
+<script setup>
+const props = defineProps({
+  text: String,
+});
+</script>
+
+<style lang="scss" scoped>
+button {
+  height: 40px;
+  width: 80%;
+
+  background: #6c7a96;
+  color: #282c34;
+
+  border: none;
+  border-radius: 5px;
+
+  margin-top: 10px;
+  font-size: 16px;
+}
+</style>

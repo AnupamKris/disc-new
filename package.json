@@ -1,0 +1,28 @@
+{
+  "name": "vtemfull",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^1.5.3",
+    "axios": "^1.6.7",
+    "pinia": "^2.1.7",
+    "sass": "^1.71.0",
+    "sass-loader": "^14.1.0",
+    "unplugin-auto-import": "^0.17.5",
+    "unplugin-vue-components": "^0.26.0",
+    "vue": "^3.4.15",
+    "vue-router": "^4.2.5",
+    "vuefire": "^3.1.23"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^1.5.10",
+    "@vitejs/plugin-vue": "^5.0.3",
+    "vite": "^5.0.11"
+  }
+}
