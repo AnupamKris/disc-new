@@ -9,7 +9,6 @@ const router = useRouter();
 
 onMounted(() => {
   console.log("Home view mounted");
-  router.push("/login");
 });
 </script>
 

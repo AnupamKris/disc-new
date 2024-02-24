@@ -11,6 +11,7 @@
   "dependencies": {
     "@tauri-apps/api": "^1.5.3",
     "axios": "^1.6.7",
+    "firebase": "^10.8.0",
     "pinia": "^2.1.7",
     "sass": "^1.71.0",
     "sass-loader": "^14.1.0",
