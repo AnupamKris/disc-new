@@ -39,6 +39,7 @@ const close = () => {
   align-items: center;
   background: #282c34;
   color: #abb2bf;
+  border-bottom: 1px solid #3b4048;
 
   position: relative;
 

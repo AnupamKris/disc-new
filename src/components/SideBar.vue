@@ -1,6 +1,5 @@
 <template>
-  <div class="sidebar" v-if="userDoc">
-    {{ statusDoc }}
+  <div class="sidebar" v-if="userDoc && statusDoc">
     <AddFriend
       v-if="addFriendVisible"
       @close="addFriendVisible = false"
@@ -39,9 +38,15 @@
     </div>
     <div class="friends">
       <h3>Friends</h3>
-      <div class="friend" v-for="friend in userDoc.friends" :key="friend">
-        <p>{{ friend.username }}</p>
-        <p>{{ statusDoc[friend.username] }}</p>
+      <div
+        class="friend"
+        :class="statusDoc[friend.username]"
+        v-for="friend in userDoc.friends"
+        :key="friend"
+        @click="selectFriend(friend)"
+      >
+        <p class="name">{{ friend.username }}</p>
+        <p class="stat">{{ statusDoc[friend.username] }}</p>
       </div>
     </div>
 
@@ -57,8 +62,15 @@
 </template>
 
 <script async setup>
-import { getCurrentUser, useDocument, useFirestore } from "vuefire";
+import {
+  getCurrentUser,
+  useDocument,
+  useFirestore,
+  useFirebaseAuth,
+} from "vuefire";
 import { doc } from "firebase/firestore";
+import { signOut } from "firebase/auth";
+import { useRouter } from "vue-router";
 
 const addFriendVisible = ref(false);
 const alertData = ref({
@@ -70,9 +82,18 @@ const db = useFirestore();
 const currentUser = await getCurrentUser();
 const userDoc = useDocument(doc(db, "users", currentUser.uid));
 const statusDoc = useDocument(doc(db, "status", "status_doc"));
+const auth = useFirebaseAuth();
+const router = useRouter();
+
+const emit = defineEmits(["call", "selectFriend"]);
 
 const addFriend = () => {
   addFriendVisible.value = !addFriendVisible.value;
+};
+
+const selectFriend = (friend) => {
+  console.log(friend);
+  emit("selectFriend", friend);
 };
 
 const alertReq = (type, message) => {
@@ -103,13 +124,20 @@ const acceptFriend = async (req) => {
     alertReq("msg", "Friend Added!");
   }
 };
+
+const logout = async () => {
+  console.log("logging out");
+  await signOut(auth);
+  router.push("/login");
+};
 </script>
 
 <style lang="scss" scoped>
 .sidebar {
   height: 100%;
   background: #282c34;
-  width: 300px;
+  border-right: 1px solid #373d47;
+  min-width: 300px;
   display: flex;
   flex-direction: column;
 
@@ -172,17 +200,35 @@ const acceptFriend = async (req) => {
       margin-bottom: 5px;
     }
     .friend {
-      height: 30px;
+      height: 40px;
       display: flex;
       justify-content: space-between;
       align-items: center;
 
       //   background: #21252b;
 
-      //   padding: 0 10px;
+      padding: 0 10px;
       //   border-radius: 5px;
       margin-bottom: 5px;
       border-bottom: 1px solid #373d47;
+      transition: 0.3s;
+
+      &:hover {
+        background: #373d47;
+        border-radius: 5px;
+      }
+    }
+
+    .online {
+      .stat {
+        color: #4dcc77;
+      }
+    }
+
+    .offline {
+      .stat {
+        color: #ff6b6b;
+      }
     }
   }
 

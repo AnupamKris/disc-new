@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/schema.json",
   "build": {
     "beforeBuildCommand": "yarn build",
-    "beforeDevCommand": "yarn dev",
+    "beforeDevCommand": "yarn dev --host",
     "devPath": "http://localhost:5173",
     "distDir": "../dist"
   },
@@ -40,7 +40,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "superchat.anupamkris.dev",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
