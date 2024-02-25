@@ -7,6 +7,8 @@
         :calling="false"
         :friend="activeFriend"
         @call="call"
+        @acceptCall="acceptCall"
+        @rejectCall="rejectCall"
       />
       <div class="empty" v-else>
         Woah! It's lonely in here. <br />

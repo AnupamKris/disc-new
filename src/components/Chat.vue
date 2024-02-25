@@ -85,7 +85,7 @@ const props = defineProps({
   calling: Boolean,
 });
 
-const emit = defineEmits(["call"]);
+const emit = defineEmits(["call", "rejectCall", "acceptCall"]);
 
 const callFriend = () => {
   emit("call");
@@ -109,6 +109,14 @@ const convertTimestampToDate = (timestamp) => {
     minute: "2-digit",
   });
   return `${dateString} ${timeString}`;
+};
+
+const acceptCall = () => {
+  emit("acceptCall");
+};
+
+const rejectCall = () => {
+  emit("rejectCall");
 };
 
 const chatInput = ref("");
