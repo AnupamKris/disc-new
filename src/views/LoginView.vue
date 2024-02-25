@@ -3,21 +3,37 @@
     <div class="container">
       <h1>Login</h1>
       <form>
-        <InputField label="Email" type="email" v-model="email" :errorMessage="errorMessages.email" />
-        <InputField label="Password" type="password" v-model="password" :errorMessage="errorMessages.password" />
-        <UIButton text="Login" @click.prevent />
+        <InputField
+          label="Email"
+          type="email"
+          v-model="email"
+          :errorMessage="errorMessages.email"
+        />
+        <InputField
+          label="Password"
+          type="password"
+          v-model="password"
+          :errorMessage="errorMessages.password"
+        />
+        <UIButton text="Login" @click.prevent="signin" />
       </form>
-      <p>Don't have an account?<RouterLink to="signup">&nbsp;Sign Up</RouterLink>
+      <p>
+        Don't have an account?<RouterLink to="signup">&nbsp;Sign Up</RouterLink>
       </p>
     </div>
   </div>
 </template>
 
-<script setup>
-import { watch } from 'vue';
+<script async setup>
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { useRouter } from "vue-router";
+import { useFirebaseAuth, getCurrentUser } from "vuefire";
 
+const auth = useFirebaseAuth();
 const password = ref("");
 const email = ref("");
+const router = useRouter();
+const currentUser = await getCurrentUser();
 
 const errorMessages = ref({
   email: "",
@@ -34,7 +50,7 @@ const checkEmail = () => {
     } else {
       errorMessages.value.email = "";
     }
-  };
+  }
 };
 
 const checkPassword = () => {
@@ -47,6 +63,32 @@ const checkPassword = () => {
   }
 };
 
+const handleError = (err) => {
+  if (err.code === "auth/user-not-found") {
+    errorMessages.value.email = "User not found";
+  } else if (err.code === "auth/wrong-password") {
+    errorMessages.value.password = "Wrong password";
+  } else {
+    errorMessages.value.email = "Invalid Credentials";
+  }
+};
+
+const signin = async () => {
+  try {
+    let res = await signInWithEmailAndPassword(
+      auth,
+      email.value,
+      password.value
+    );
+    console.log(res);
+    if (res.user) {
+      router.push("/");
+    }
+  } catch (error) {
+    handleError(error);
+  }
+};
+
 watch(email, () => {
   checkEmail();
 });
@@ -55,6 +97,12 @@ watch(password, () => {
   checkPassword();
 });
 
+onMounted(() => {
+  console.log("Login view mounted");
+  if (currentUser) {
+    router.push("/");
+  }
+});
 </script>
 
 <style lang="scss" scoped>
@@ -79,7 +127,6 @@ watch(password, () => {
     }
 
     p {
-
       margin-top: 15px;
 
       display: flex;

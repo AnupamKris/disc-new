@@ -3,28 +3,48 @@
     <div class="container">
       <h1>Sign Up</h1>
       <form>
-        <InputField label="Email" type="email" v-model="email" :errorMessage="errorMessages.email"
-          @blur="checkEmailExists" />
-        <InputField label="Username" type="text" v-model="username" :errorMessage="errorMessages.username"
-          @blur="checkUsernameExists" />
-        <InputField label="Password" type="password" v-model="password" :errorMessage="errorMessages.password" />
-        <InputField label="Repeat Password" type="password" v-model="repeatPassword"
-          :errorMessage="errorMessages.repeatPassword" />
+        <InputField
+          label="Email"
+          type="email"
+          v-model="email"
+          :errorMessage="errorMessages.email"
+          @blur="checkEmailExists"
+        />
+        <InputField
+          label="Username"
+          type="text"
+          v-model="username"
+          :errorMessage="errorMessages.username"
+          @blur="checkUsernameExists"
+        />
+        <InputField
+          label="Password"
+          type="password"
+          v-model="password"
+          :errorMessage="errorMessages.password"
+        />
+        <InputField
+          label="Repeat Password"
+          type="password"
+          v-model="repeatPassword"
+          :errorMessage="errorMessages.repeatPassword"
+        />
         <UIButton text="Sign Up" @click.prevent="signup" />
       </form>
-      <p>Already have an account?<RouterLink to="login">&nbsp;Login</RouterLink>
+      <p>
+        Already have an account?<RouterLink to="login">&nbsp;Login</RouterLink>
       </p>
     </div>
   </div>
 </template>
 
-<script setup>
-import { useFirestore, useFirebaseAuth } from "vuefire";
+<script async setup>
+import { useFirestore, useFirebaseAuth, getCurrentUser } from "vuefire";
 import { collection, getDocs, where, query } from "firebase/firestore";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { useRouter } from "vue-router";
 import axios from "axios";
-
+import { onMounted } from "vue";
 
 const db = useFirestore();
 const password = ref("");
@@ -34,6 +54,7 @@ const repeatPassword = ref("");
 const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
 const auth = useFirebaseAuth();
 const router = useRouter();
+const currentUser = await getCurrentUser();
 
 const errorMessages = ref({
   email: "",
@@ -43,7 +64,10 @@ const errorMessages = ref({
 });
 
 const checkEmailExists = async () => {
-  const user = query(collection(db, "users"), where("email", "==", email.value));
+  const user = query(
+    collection(db, "users"),
+    where("email", "==", email.value)
+  );
   const docSnap = await getDocs(user);
   console.log(docSnap.docs.length);
   if (docSnap.docs.length > 0) {
@@ -54,7 +78,10 @@ const checkEmailExists = async () => {
 };
 
 const checkUsernameExists = async () => {
-  const user = query(collection(db, "users"), where("username", "==", username.value));
+  const user = query(
+    collection(db, "users"),
+    where("username", "==", username.value)
+  );
   const docSnap = await getDocs(user);
   console.log(docSnap.docs.length);
   if (docSnap.docs.length > 0) {
@@ -114,7 +141,11 @@ const signup = async () => {
     repeatPassword.value !== ""
   ) {
     console.log("Sign up");
-    let authuser = await createUserWithEmailAndPassword(auth, email.value, password.value).catch((error) => {
+    let authuser = await createUserWithEmailAndPassword(
+      auth,
+      email.value,
+      password.value
+    ).catch((error) => {
       console.log(error);
     });
 
@@ -134,7 +165,12 @@ const signup = async () => {
   }
 };
 
-
+onMounted(() => {
+  console.log("Signup view mounted");
+  if (currentUser) {
+    router.push("/");
+  }
+});
 </script>
 
 <style lang="scss" scoped>
@@ -159,7 +195,6 @@ const signup = async () => {
     }
 
     p {
-
       margin-top: 15px;
 
       display: flex;

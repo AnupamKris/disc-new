@@ -1,9 +1,18 @@
 <template>
   <div class="input-field">
     <div class="field">
-      <label :class="{ error: errorMessage.length }" :for="id"><ion-icon :name="iconname"></ion-icon></label>
-      <input :class="{ error: errorMessage.length }" :type="type" :id="id" :name="id" @blur="emit('blur')"
-        v-model="modelValue" />
+      <label :class="{ error: errorMessage.length }" :for="id"
+        ><ion-icon :name="iconname"></ion-icon
+      ></label>
+      <input
+        :class="{ error: errorMessage.length }"
+        :type="type"
+        :id="id"
+        :name="id"
+        @blur="emit('blur')"
+        v-model="modelValue"
+        :placeholder="'Enter ' + label"
+      />
     </div>
     <p :class="{ 'error-active': errorMessage.length }">{{ errorMessage }}</p>
   </div>
@@ -72,7 +81,7 @@ const iconname = computed(() => {
     height: 40px;
     width: 100%;
 
-    padding: 0 5px;
+    padding: 0 10px;
     display: flex;
     justify-content: center;
     align-items: center;

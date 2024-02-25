@@ -1,6 +1,6 @@
 <template>
   <div class="titlebar" data-tauri-drag-region>
-    <p></p>
+    <p>Discord</p>
     <div class="controls">
       <div class="ctl" @click="minimize">
         <ion-icon name="remove-outline"></ion-icon>
@@ -35,7 +35,7 @@ const close = () => {
 .titlebar {
   height: 40px;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   background: #282c34;
   color: #abb2bf;
@@ -44,6 +44,7 @@ const close = () => {
 
   p {
     pointer-events: none;
+    padding: 0 20px;
   }
 
   .controls {

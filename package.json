@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@rtco/client": "^0.1.26",
     "@tauri-apps/api": "^1.5.3",
     "axios": "^1.6.7",
     "firebase": "^10.8.0",
