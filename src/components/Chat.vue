@@ -10,7 +10,12 @@
     </div>
     <div
       class="calling"
-      v-if="rtcData.callIncoming && rtcData.callerId == friend.username"
+      v-if="
+        (rtcData.callIncoming ||
+          rtcData.callInProgress ||
+          rtcData.callOutgoing) &&
+        rtcData.callerId == friend.username
+      "
     >
       <div class="profiles">
         <div class="caller">
@@ -21,7 +26,24 @@
         </div>
       </div>
       <div class="buttons">
-        <button @click="acceptCall"><ion-icon name="call"></ion-icon></button>
+        <button
+          @click="acceptCall"
+          v-if="!rtcData.callInProgress && !rtcData.callOutgoing"
+        >
+          <ion-icon name="call"></ion-icon>
+        </button>
+        <button v-if="rtcData.callInProgress">
+          <ion-icon
+            name="mic"
+            v-if="!rtcData.isMuted"
+            @click="rtcData.toggleMute"
+          ></ion-icon>
+          <ion-icon
+            name="mic-off"
+            v-else
+            @click="rtcData.toggleMute"
+          ></ion-icon>
+        </button>
         <button @click="rejectCall"><ion-icon name="close"></ion-icon></button>
       </div>
     </div>
@@ -198,6 +220,23 @@ const sendChat = async () => {
         display: flex;
         justify-content: center;
         align-items: center;
+
+        position: relative;
+        z-index: 1;
+
+        .bouncer {
+          height: 80px;
+          width: 80px;
+          border-radius: 50%;
+          background: radial-gradient(circle, #4d77cc00 0%, #4d78cc 100%);
+
+          position: absolute;
+          top: 0;
+          // transform: translate(-50%, -50%);
+
+          animation: zoominout 1s infinite;
+          z-index: -1;
+        }
 
         h3 {
           font-size: 24px;
@@ -381,6 +420,18 @@ const sendChat = async () => {
     .attach {
       left: 35px;
     }
+  }
+}
+
+@keyframes zoominout {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 </style>

@@ -16,10 +16,17 @@
       </div>
     </div>
     <CallNotification
-      v-if="rtcData.callIncoming && rtcData.callerId != activeFriend.username"
+      v-if="rtcData.callIncoming && rtcData.callerId != activeFriend?.username"
       :callerId="rtcData.callerId"
       @acceptCall="acceptCall"
       @rejectCall="rejectCall"
+    />
+
+    <CallPopUp
+      v-if="
+        (rtcData.callOutgoing || rtcData.callInProgress) &&
+        rtcData.callerId != activeFriend?.username
+      "
     />
     <audio autoplay ref="audioRef"></audio>
   </div>
@@ -77,7 +84,7 @@ onMounted(async () => {
   rtcData.createPeerConnection(currentUser.displayName);
   console.log(currentUser.displayName, "online");
 
-  const socket = io("http://localhost:5000");
+  const socket = io("http://localhost:5000/");
   socket.on("connect", () => {
     console.log("connected");
     socket.emit("uid", currentUser.displayName);
