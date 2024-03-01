@@ -28,6 +28,7 @@
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "vue-router";
 import { useFirebaseAuth, getCurrentUser } from "vuefire";
+import { watch, ref, onMounted, computed } from "vue";
 
 const auth = useFirebaseAuth();
 const password = ref("");

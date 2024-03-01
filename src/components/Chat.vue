@@ -8,45 +8,6 @@
         </div>
       </div>
     </div>
-    <div
-      class="calling"
-      v-if="
-        (rtcData.callIncoming ||
-          rtcData.callInProgress ||
-          rtcData.callOutgoing) &&
-        rtcData.callerId == friend.username
-      "
-    >
-      <div class="profiles">
-        <div class="caller">
-          <h3>{{ rtcData.callerId[0].toUpperCase() }}</h3>
-        </div>
-        <div class="receiver">
-          <h3>{{ currentUser.displayName[0].toUpperCase() }}</h3>
-        </div>
-      </div>
-      <div class="buttons">
-        <button
-          @click="acceptCall"
-          v-if="!rtcData.callInProgress && !rtcData.callOutgoing"
-        >
-          <ion-icon name="call"></ion-icon>
-        </button>
-        <button v-if="rtcData.callInProgress">
-          <ion-icon
-            name="mic"
-            v-if="!rtcData.isMuted"
-            @click="rtcData.toggleMute"
-          ></ion-icon>
-          <ion-icon
-            name="mic-off"
-            v-else
-            @click="rtcData.toggleMute"
-          ></ion-icon>
-        </button>
-        <button @click="rejectCall"><ion-icon name="close"></ion-icon></button>
-      </div>
-    </div>
     <div class="chats" v-if="chats">
       <div
         v-for="(chat, index) in chats.messages"
@@ -90,8 +51,8 @@
 
 <script async setup>
 import { doc, collection, updateDoc, arrayUnion } from "firebase/firestore";
-import { watch } from "vue";
-import { useRtcDataStore } from "../stores/rtcData";
+import { watch, ref, onMounted } from "vue";
+import { useRtcDataStore } from "../stores/newRtcData";
 import {
   useFirestore,
   useCurrentUser,

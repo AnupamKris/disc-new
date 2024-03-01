@@ -10,20 +10,29 @@
     <div class="title">
       <h2>{{ rtcData.callerId }}</h2>
     </div>
-    <div class="buttons">
+    <div class="buttons" v-if="!rtcData.isCallOutgoing">
       <button @click="rtcData.toggleMute">
         <ion-icon :name="rtcData.isMuted ? 'mic-off' : 'mic'"></ion-icon>
       </button>
-      <button @click="rtcData.rejectCall" class="reject">
-        <ion-icon name="close"></ion-icon>
-      </button>
     </div>
+    <div class="buttons" v-else>
+      <div class="lds-ellipsis">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+    </div>
+    <button @click="rtcData.rejectCall" class="reject">
+      <ion-icon name="call"></ion-icon>
+    </button>
   </div>
 </template>
 
 <script setup>
 import { computed } from "vue";
-import { useRtcDataStore } from "../stores/rtcData";
+import { useRtcDataStore } from "../stores/newRtcData";
+import { watch, ref, onMounted } from "vue";
 
 const rtcData = useRtcDataStore();
 const dragging = ref(false);
@@ -62,11 +71,11 @@ const position = computed(() => {
   bottom: 10px;
   right: 10px;
 
-  height: 100px;
+  height: 140px;
 
   background: #282c34;
 
-  padding: 0 10px;
+  padding: 0 30px;
   border-radius: 10px;
   border-top: 18px solid #3b4048;
 
@@ -82,7 +91,9 @@ const position = computed(() => {
     display: flex;
     justify-content: center;
     align-items: center;
+    position: relative;
 
+    margin-bottom: 10px;
     button {
       height: 30px;
       width: 30px;
@@ -101,10 +112,21 @@ const position = computed(() => {
       margin: 0 5px;
       margin-top: 5px;
     }
+  }
+  .reject {
+    border: none;
+    border-radius: 10px;
+    background: #f04747;
+    color: #fff;
 
-    .reject {
-      background: #f04747;
-      color: #fff;
+    padding: 5px 0;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    ion-icon {
+      transform: rotateZ(135deg);
     }
   }
 }

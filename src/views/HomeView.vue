@@ -13,21 +13,18 @@
       <div class="empty" v-else>
         Woah! It's lonely in here. <br />
         Don't you have any friends to chat with?
+        {{ rtcData }}
       </div>
     </div>
+
     <CallNotification
-      v-if="rtcData.callIncoming && rtcData.callerId != activeFriend?.username"
+      v-if="rtcData.isCallIncoming"
       :callerId="rtcData.callerId"
       @acceptCall="acceptCall"
       @rejectCall="rejectCall"
     />
 
-    <CallPopUp
-      v-if="
-        (rtcData.callOutgoing || rtcData.callInProgress) &&
-        rtcData.callerId != activeFriend?.username
-      "
-    />
+    <CallPopUp v-if="rtcData.isCallOutgoing || rtcData.isCallInProgress" />
     <audio autoplay ref="audioRef"></audio>
   </div>
 </template>
@@ -35,14 +32,16 @@
 <script async setup>
 import { useRouter } from "vue-router";
 import { getCurrentUser } from "vuefire";
-import { Artico } from "@rtco/client";
-import { useRtcDataStore } from "../stores/rtcData";
+import { useRtcDataStore } from "../stores/newRtcData";
 import axios from "axios";
-import { io } from "socket.io-client";
-import { watch } from "vue";
+import SideBar from "@/components/SideBar.vue";
+import Chat from "@/components/Chat.vue";
+import CallNotification from "@/components/CallNotification.vue";
+
+import { watch, ref, onMounted, onUnmounted } from "vue";
 
 const audioRef = ref(null);
-
+// const rtcData = {};
 const router = useRouter();
 const currentUser = await getCurrentUser();
 const rtcData = useRtcDataStore();
@@ -50,12 +49,7 @@ const activeFriend = ref(null);
 
 const call = async () => {
   let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  rtcData.callPeer(
-    activeFriend.value.username,
-    currentUser.displayName,
-    stream,
-    audioRef
-  );
+  rtcData.callPeer(activeFriend.value.username, stream, audioRef);
 };
 
 const rejectCall = () => {
@@ -72,48 +66,31 @@ const selectFriend = (friend) => {
   setTimeout(() => {
     activeFriend.value = friend;
   }, 10);
-  // rtcData.createPeerConnection(currentUser.uid);
-  // console.log(currentUser.displayName, "online");
-  // axios.post("http://localhost:5000/setVisibility", {
-  //   username: currentUser.displayName,
-  //   value: "online",
-  // });
 };
 
 onMounted(async () => {
-  rtcData.createPeerConnection(currentUser.displayName);
+  console.log("Mounted Again", rtcData.connectionId);
+  if (rtcData.connectionId === "") {
+    rtcData.createPeerConnection(currentUser.displayName);
+  }
   console.log(currentUser.displayName, "online");
 
-  const socket = io("http://localhost:5000/");
-  socket.on("connect", () => {
-    console.log("connected");
-    socket.emit("uid", currentUser.displayName);
-  });
+  // const socket = io("http://localhost:5000/");
+  // socket.on("connect", () => {
+  //   console.log("connected");
+  //   socket.emit("uid", currentUser.displayName);
+  // });
 });
 
-onUnmounted(async () => {
-  await axios.post("http://localhost:5000/setVisibility", {
-    username: currentUser.displayName,
-    value: "offline",
-  });
-});
+onUnmounted(async () => {});
 
-// window.addEventListener("beforeunload", async (e) => {
-//   console.log("beforeunload", currentUser.displayName, "offline");
-//   let res = await axios.post(
-//     "http://localhost:5000/setVisibility",
-//     {
-//       username: currentUser.displayName,
-//       value: "offline",
-//     },
-//     {
-//       headers: {
-//         "Content-Type": "application/json",
-//       },
-//     }
-//   );
-//   console.log(res.data);
-// });
+watch(rtcData, (newVal) => {
+  console.log("update");
+  if (newVal.otherAudioStream && newVal.isCallInProgress) {
+    console.log("new audio stream", newVal.otherAudioStream);
+    audioRef.value.srcObject = newVal.otherAudioStream;
+  }
+});
 </script>
 
 <style lang="scss" scoped>

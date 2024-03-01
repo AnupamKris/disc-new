@@ -40,13 +40,18 @@
       <h3>Friends</h3>
       <div
         class="friend"
-        :class="statusDoc[friend.username]"
         v-for="friend in userDoc.friends"
         :key="friend"
         @click="selectFriend(friend)"
       >
         <p class="name">{{ friend.username }}</p>
-        <p class="stat">{{ statusDoc[friend.username] }}</p>
+        <!-- <p
+          class="stat online"
+          v-if="rtcData.friendsObjects.includes(friend.username)"
+        >
+          online
+        </p>
+        <p class="stat" v-else>offline</p> -->
       </div>
     </div>
 
@@ -71,6 +76,8 @@ import {
 import { doc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { useRouter } from "vue-router";
+import { watch, ref, onMounted } from "vue";
+import { useRtcDataStore } from "../stores/newRtcData";
 
 const addFriendVisible = ref(false);
 const alertData = ref({
@@ -84,7 +91,7 @@ const userDoc = useDocument(doc(db, "users", currentUser.uid));
 const statusDoc = useDocument(doc(db, "status", "status_doc"));
 const auth = useFirebaseAuth();
 const router = useRouter();
-
+const rtcData = useRtcDataStore();
 const emit = defineEmits(["call", "selectFriend"]);
 
 const addFriend = () => {
@@ -130,6 +137,20 @@ const logout = async () => {
   await signOut(auth);
   router.push("/login");
 };
+
+// watch(userDoc, (newVal) => {
+//   if (newVal.friends?.length && !rtcData.isFriendsConnected) {
+//     // wait until rtc connected
+//     // let interval = setInterval(() => {
+//     //   console.log("checking for friends", rtcData.isConnected);
+//     //   if (rtcData.isConnected && !rtcData.isFriendsConnected) {
+//     //     clearInterval(interval);
+//     //     console.log("friends", newVal.friends);
+//     //     rtcData.checkForFriends(newVal.friends);
+//     //   }
+//     // }, 1000);
+//   }
+// });
 </script>
 
 <style lang="scss" scoped>
@@ -220,12 +241,14 @@ const logout = async () => {
     }
 
     .online {
+      color: #4dcc77;
       .stat {
         color: #4dcc77;
       }
     }
 
     .offline {
+      color: #ff6b6b;
       .stat {
         color: #ff6b6b;
       }
