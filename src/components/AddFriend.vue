@@ -14,9 +14,20 @@
 </template>
 
 <script setup>
-import axios from "axios";
 import { getCurrentUser } from "vuefire";
+import {
+  doc,
+  setDoc,
+  arrayUnion,
+  getDoc,
+  where,
+  query,
+  collection,
+  getDocs,
+} from "firebase/firestore";
+import { useFirestore } from "vuefire";
 
+const db = useFirestore();
 const username = ref("");
 const currentUser = await getCurrentUser();
 const emit = defineEmits(["close", "requestSent"]);
@@ -30,19 +41,52 @@ const addFriend = async () => {
   } else if (username.value === currentUser.displayName) {
     errorMessages.value.username = "You can't add yourself as a friend";
   } else {
-    let res = await axios.post("http://localhost:5000/addFriend", {
-      uid: currentUser.uid,
-      frusername: username.value,
-    });
-    if (res.data.error) {
-      errorMessages.value.username = res.data.error;
+    // let res = await axios.post("http://localhost:5000/addFriend", {
+    //   uid: currentUser.uid,
+    //   frusername: username.value,
+    // });
+
+    let selfDocRef = doc(db, "users", currentUser.uid);
+    let friendDocQuery = query(
+      collection(db, "users"),
+      where("username", "==", username.value)
+    );
+    let friendDocRef = await getDocs(friendDocQuery);
+    if (friendDocRef.docs.length == 0) {
+      errorMessages.value.username = "User does not exist";
+      return;
     } else {
-      errorMessages.value.username = "";
-      emit("requestSent");
-      setTimeout(() => {
-        emit("close");
-      }, 100);
+      friendDocRef = friendDocRef.docs[0].ref;
     }
+
+    let selfData = {
+      timestamp: new Date(),
+      type: "outgoing",
+      username: username.value,
+    };
+
+    let friendData = {
+      timestamp: new Date(),
+      type: "incoming",
+      username: currentUser.displayName,
+    };
+
+    await setDoc(
+      selfDocRef,
+      {
+        friendRequests: arrayUnion(selfData),
+      },
+      { merge: true }
+    );
+    await setDoc(
+      friendDocRef,
+      {
+        friendRequests: arrayUnion(friendData),
+      },
+      { merge: true }
+    );
+    emit("requestSent");
+    close();
   }
 };
 

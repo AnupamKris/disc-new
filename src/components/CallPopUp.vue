@@ -31,10 +31,10 @@
 
 <script setup>
 import { computed } from "vue";
-import { useRtcDataStore } from "../stores/newRtcData";
+import { useNewRtcDataStore } from "../stores/newRtcData";
 import { watch, ref, onMounted } from "vue";
 
-const rtcData = useRtcDataStore();
+const rtcData = useNewRtcDataStore();
 const dragging = ref(false);
 
 const pos = ref({

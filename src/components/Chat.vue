@@ -52,7 +52,7 @@
 <script async setup>
 import { doc, collection, updateDoc, arrayUnion } from "firebase/firestore";
 import { watch, ref, onMounted } from "vue";
-import { useRtcDataStore } from "../stores/newRtcData";
+import { useNewRtcDataStore } from "../stores/newRtcData";
 import {
   useFirestore,
   useCurrentUser,
@@ -61,17 +61,18 @@ import {
 } from "vuefire";
 
 const db = useFirestore();
-const rtcData = useRtcDataStore();
+const rtcData = useNewRtcDataStore();
 
 const props = defineProps({
   friend: Object,
   calling: Boolean,
 });
 
-const emit = defineEmits(["call", "rejectCall", "acceptCall"]);
+const emit = defineEmits(["rejectCall", "acceptCall"]);
 
-const callFriend = () => {
-  emit("call");
+const callFriend = async () => {
+  let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  rtcData.callPeer(props.friend.username, stream);
 };
 
 const currentUser = await getCurrentUser();
@@ -106,15 +107,18 @@ const chatInput = ref("");
 const sendChat = async () => {
   if (chatInput.value === "") return;
   let chatRef = doc(db, "chats", props.friend.chatId);
+  console.log(props.friend.chatId, "chatRef");
   let chatData = {
     message: chatInput.value,
     sender: currentUser.displayName,
     timestamp: new Date(),
   };
+  chatInput.value = "";
   await updateDoc(chatRef, {
     messages: arrayUnion(chatData),
   });
-  chatInput.value = "";
+
+  rtcData.sendChatNotification(props.friend.username);
 };
 </script>
 

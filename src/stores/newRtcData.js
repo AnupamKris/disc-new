@@ -2,7 +2,7 @@ import { ref } from "vue";
 import { defineStore } from "pinia";
 import { Artico } from "@rtco/client";
 
-export const useRtcDataStore = defineStore("newRtcData", () => {
+export const useNewRtcDataStore = defineStore("newRtcData", () => {
   let artico;
   let ongoingCall = null;
   let incomingCall = null;
@@ -12,6 +12,7 @@ export const useRtcDataStore = defineStore("newRtcData", () => {
   const connectionId = ref("");
 
   const friendsObjects = ref([]);
+  const notficationChats = ref([]);
 
   const myAudioStream = ref(null);
   const myVideoStream = ref(null);
@@ -26,7 +27,7 @@ export const useRtcDataStore = defineStore("newRtcData", () => {
   const isScreenSharing = ref(false);
   const isCallOutgoing = ref(false);
   const isCallInProgress = ref(false);
-  const isFriendsConnected = ref(false);
+  // const isNotification = ref(false);
 
   const createPeerConnection = (id) => {
     console.log("Creating peer connection", id);
@@ -35,8 +36,18 @@ export const useRtcDataStore = defineStore("newRtcData", () => {
     });
 
     artico.on("call", (call) => {
-      const { metadata } = call;
-      console.log("Incoming call from: ", metadata.username);
+      let { metadata } = call;
+
+      if (metadata.type == "notification") {
+        console.log("Incoming notification from: ", metadata.username);
+        notficationChats.value.push(metadata.username);
+        console.log(notficationChats);
+        call.hangup();
+        return;
+      }
+
+      console.log("Incoming call from: ", metadata?.username);
+      console.log("Incoming call from: ", "unknown");
       incomingCall = call;
 
       isCallIncoming.value = true;
@@ -48,14 +59,14 @@ export const useRtcDataStore = defineStore("newRtcData", () => {
         }
       }, 1000 * 30);
 
-      incomingCall.on("close", () => {
+      call.on("close", () => {
         console.log("Call closed");
         isCallIncoming.value = false;
         isCallInProgress.value = false;
         callerId.value = "";
       });
 
-      incomingCall.on("stream", (stream) => {
+      call.on("stream", (stream) => {
         console.log("Stream received: ", stream);
         otherAudioStream.value = stream;
       });
@@ -105,24 +116,16 @@ export const useRtcDataStore = defineStore("newRtcData", () => {
       isCallInProgress.value = false;
       isCallOutgoing.value = false;
     });
-
-    // let call = ;
-    // console.log(call);
-    // friendsCallObjects[peerId].send(
-    //   JSON.stringify({
-    //     type: "call",
-    //     username: connectionId.value,
-    //   })
-    // );
   };
 
-  const answerCall = async (dataStream) => {
+  const answerCall = (dataStream) => {
     console.log("Answering call", incomingCall, dataStream);
 
     myAudioStream.value = dataStream;
     incomingCall.answer();
 
     incomingCall.on("open", () => {
+      console.log("Call opened");
       incomingCall.addStream(myAudioStream.value, {
         id: "audio",
       });
@@ -155,7 +158,8 @@ export const useRtcDataStore = defineStore("newRtcData", () => {
 
   const rejectCall = () => {
     if (isCallInProgress.value) {
-      ongoingCall.close();
+      console.log("Closing ongoing call", ongoingCall);
+      ongoingCall.hangup();
       isCallInProgress.value = false;
       isCallOutgoing.value = false;
       isCallIncoming.value = false;
@@ -163,21 +167,34 @@ export const useRtcDataStore = defineStore("newRtcData", () => {
       myAudioStream.value = null;
       otherAudioStream.value = null;
     } else if (isCallIncoming.value) {
-      incomingCall.close();
+      console.log("Closing incoming call", incomingCall);
+      incomingCall.hangup();
       isCallIncoming.value = false;
       callerId.value = "";
       otherAudioStream.value = null;
     } else if (isCallOutgoing.value) {
       console.log("Closing outgoing call", outgoingCall);
-      outgoingCall.close();
+      outgoingCall.hangup();
       isCallOutgoing.value = false;
       callerId.value = "";
       myAudioStream.value = null;
     }
   };
 
+  const sendChatNotification = (peerId) => {
+    let call = artico.call(peerId, {
+      username: connectionId.value,
+      type: "notification",
+    });
+
+    setTimeout(() => {
+      call.hangup();
+    }, 500);
+  };
+
   return {
     ongoingCall,
+    outgoingCall,
     callerId,
     connectionId,
     myAudioStream,
@@ -186,6 +203,7 @@ export const useRtcDataStore = defineStore("newRtcData", () => {
     otherAudioStream,
     incomingCall,
     friendsObjects,
+    notficationChats,
 
     isCallIncoming,
     isMuted,
@@ -193,7 +211,6 @@ export const useRtcDataStore = defineStore("newRtcData", () => {
     isScreenSharing,
     isCallOutgoing,
     isCallInProgress,
-    isFriendsConnected,
     isConnected,
 
     createPeerConnection,
@@ -201,5 +218,6 @@ export const useRtcDataStore = defineStore("newRtcData", () => {
     answerCall,
     toggleMute,
     rejectCall,
+    sendChatNotification,
   };
 });

@@ -29,6 +29,8 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "vue-router";
 import { useFirebaseAuth, getCurrentUser } from "vuefire";
 import { watch, ref, onMounted, computed } from "vue";
+import InputField from "@/components/InputField.vue";
+import UIButton from "@/components/UIButton.vue";
 
 const auth = useFirebaseAuth();
 const password = ref("");

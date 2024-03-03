@@ -40,10 +40,16 @@
 
 <script async setup>
 import { useFirestore, useFirebaseAuth, getCurrentUser } from "vuefire";
-import { collection, getDocs, where, query } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  where,
+  query,
+  setDoc,
+  doc,
+} from "firebase/firestore";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { useRouter } from "vue-router";
-import axios from "axios";
 import { onMounted } from "vue";
 
 const db = useFirestore();
@@ -154,12 +160,21 @@ const signup = async () => {
     });
 
     if (authuser.user) {
-      await axios.post("http://localhost:5000/createUser", {
-        email: email.value,
-        username: username.value,
+      // await axios.post("http://localhost:5000/createUser", {
+      //   email: email.value,
+      //   username: username.value,
+      //   uid: authuser.user.uid,
+      // });
+      const userData = {
         uid: authuser.user.uid,
-      });
+        friends: [],
+        friendRequests: [],
+        visibility: "offline",
+        username: username.value,
+        email: email.value,
+      };
 
+      await setDoc(doc(db, "users", authuser.user.uid), userData);
       router.push({ name: "home" });
     }
   }

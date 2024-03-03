@@ -10,18 +10,24 @@
 </template>
 
 <script setup>
+import { useNewRtcDataStore } from "@/stores/newRtcData";
+import { watch } from "vue";
+
 const props = defineProps({
   callerId: String,
 });
 
+const rtcData = useNewRtcDataStore();
+
 const emit = defineEmits(["acceptCall", "rejectCall"]);
 
-const acceptCall = () => {
-  emit("acceptCall");
+const rejectCall = () => {
+  rtcData.rejectCall();
 };
 
-const rejectCall = () => {
-  emit("rejectCall");
+const acceptCall = async () => {
+  let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  rtcData.answerCall(stream);
 };
 </script>
 
@@ -36,6 +42,8 @@ const rejectCall = () => {
   width: 200px;
 
   padding: 0 10px;
+
+  z-index: 5;
 
   box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5);
 

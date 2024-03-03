@@ -45,6 +45,18 @@
         @click="selectFriend(friend)"
       >
         <p class="name">{{ friend.username }}</p>
+        <p
+          class="unseen"
+          v-if="
+            rtcData.notficationChats.filter((uname) => uname == friend.username)
+              .length
+          "
+        >
+          {{
+            rtcData.notficationChats.filter((uname) => uname == friend.username)
+              .length
+          }}
+        </p>
         <!-- <p
           class="stat online"
           v-if="rtcData.friendsObjects.includes(friend.username)"
@@ -64,6 +76,12 @@
       </button>
     </div>
   </div>
+  <CallNotification
+    v-if="rtcData.isCallIncoming"
+    :callerId="rtcData.callerId"
+  />
+  <CallPopUp v-if="rtcData.isCallOutgoing || rtcData.isCallInProgress" />
+  <audio autoplay ref="audioRef"></audio>
 </template>
 
 <script async setup>
@@ -73,11 +91,26 @@ import {
   useFirestore,
   useFirebaseAuth,
 } from "vuefire";
-import { doc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  setDoc,
+  updateDoc,
+  query,
+  getDocs,
+  where,
+  arrayUnion,
+  arrayRemove,
+} from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { useRouter } from "vue-router";
 import { watch, ref, onMounted } from "vue";
-import { useRtcDataStore } from "../stores/newRtcData";
+import { useNewRtcDataStore } from "../stores/newRtcData";
+import CallNotification from "./CallNotification.vue";
+import CallPopUp from "./CallPopUp.vue";
+import AlertMessage from "./AlertMessage.vue";
+import AddFriend from "./AddFriend.vue";
 
 const addFriendVisible = ref(false);
 const alertData = ref({
@@ -91,8 +124,9 @@ const userDoc = useDocument(doc(db, "users", currentUser.uid));
 const statusDoc = useDocument(doc(db, "status", "status_doc"));
 const auth = useFirebaseAuth();
 const router = useRouter();
-const rtcData = useRtcDataStore();
+const rtcData = useNewRtcDataStore();
 const emit = defineEmits(["call", "selectFriend"]);
+const audioRef = ref(null);
 
 const addFriend = () => {
   addFriendVisible.value = !addFriendVisible.value;
@@ -101,6 +135,7 @@ const addFriend = () => {
 const selectFriend = (friend) => {
   console.log(friend);
   emit("selectFriend", friend);
+  removeNotification(friend.username);
 };
 
 const alertReq = (type, message) => {
@@ -114,22 +149,79 @@ const alertReq = (type, message) => {
 };
 
 const acceptFriend = async (req) => {
-  let res = await fetch("http://localhost:5000/acceptFriend", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      uid: currentUser.uid,
-      frusername: req.username,
-    }),
+  let selfReqData = req;
+  let friendReqData = {
+    timestamp: selfReqData.timestamp,
+    type: "outgoing",
+    username: currentUser.displayName,
+  };
+
+  let friendDocQuery = query(
+    collection(db, "users"),
+    where("username", "==", selfReqData.username)
+  );
+
+  let friendDocRef = await getDocs(friendDocQuery);
+  friendDocRef = friendDocRef.docs[0].ref;
+
+  let selfDocRef = doc(db, "users", currentUser.uid);
+  let chatObj = await addDoc(collection(db, "chats"), {
+    messages: [],
   });
-  let data = await res.json();
-  if (data.error) {
-    alertReq("error", data.error);
-  } else {
-    alertReq("msg", "Friend Added!");
-  }
+  let chatId = chatObj.id;
+
+  let selfFriendData = {
+    username: selfReqData.username,
+    chatId: chatId,
+    timestamp: new Date(),
+  };
+
+  let friendFriendData = {
+    username: friendReqData.username,
+    chatId: chatId,
+    timestamp: new Date(),
+  };
+
+  await updateDoc(selfDocRef, {
+    friends: arrayUnion(selfFriendData),
+    friendRequests: arrayRemove(selfReqData),
+  });
+
+  await updateDoc(friendDocRef, {
+    friends: arrayUnion(friendFriendData),
+    friendRequests: arrayRemove(friendReqData),
+  });
+
+  alertReq("msg", "Friend Request Accepted!");
+};
+
+const rejectFriend = async (req) => {
+  let selfReqData = req;
+  let friendReqData = {
+    timestamp: selfReqData.timestamp,
+    type: "outgoing",
+    username: currentUser.displayName,
+  };
+
+  let friendDocQuery = query(
+    collection(db, "users"),
+    where("username", "==", selfReqData.username)
+  );
+
+  let friendDocRef = await getDocs(friendDocQuery);
+  friendDocRef = friendDocRef.docs[0].ref;
+
+  let selfDocRef = doc(db, "users", currentUser.uid);
+
+  await updateDoc(selfDocRef, {
+    friendRequests: arrayRemove(selfReqData),
+  });
+
+  await updateDoc(friendDocRef, {
+    friendRequests: arrayRemove(friendReqData),
+  });
+
+  alertReq("msg", "Friend Request Rejected!");
 };
 
 const logout = async () => {
@@ -138,19 +230,33 @@ const logout = async () => {
   router.push("/login");
 };
 
-// watch(userDoc, (newVal) => {
-//   if (newVal.friends?.length && !rtcData.isFriendsConnected) {
-//     // wait until rtc connected
-//     // let interval = setInterval(() => {
-//     //   console.log("checking for friends", rtcData.isConnected);
-//     //   if (rtcData.isConnected && !rtcData.isFriendsConnected) {
-//     //     clearInterval(interval);
-//     //     console.log("friends", newVal.friends);
-//     //     rtcData.checkForFriends(newVal.friends);
-//     //   }
-//     // }, 1000);
-//   }
-// });
+const removeNotification = (uname) => {
+  rtcData.notficationChats = rtcData.notficationChats.filter(
+    (username) => username != uname
+  );
+};
+
+onMounted(() => {
+  console.log("sidebar mounted", currentUser.displayName);
+  rtcData.createPeerConnection(currentUser.displayName);
+  let notifChats = JSON.parse(localStorage.getItem("notficationChats"));
+  if (notifChats) {
+    rtcData.notficationChats = notifChats;
+  }
+});
+
+watch(rtcData, (newVal) => {
+  if (newVal.otherAudioStream && newVal.isCallInProgress) {
+    console.log("new audio stream", newVal.otherAudioStream);
+    audioRef.value.srcObject = newVal.otherAudioStream;
+  } else {
+    console.log(rtcData.notficationChats);
+    localStorage.setItem(
+      "notficationChats",
+      JSON.stringify(rtcData.notficationChats)
+    );
+  }
+});
 </script>
 
 <style lang="scss" scoped>
@@ -237,6 +343,19 @@ const logout = async () => {
       &:hover {
         background: #373d47;
         border-radius: 5px;
+      }
+
+      .unseen {
+        width: 18px;
+        height: 18px;
+        border-radius: 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #4d78cc;
+        color: #282c34;
+        font-size: 10px;
+        font-weight: bold;
       }
     }
 
