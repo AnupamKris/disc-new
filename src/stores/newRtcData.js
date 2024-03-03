@@ -1,12 +1,15 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
 import { Artico } from "@rtco/client";
+// import { readBinaryFile } from "@tauri-apps/api/fs";
+
 
 export const useNewRtcDataStore = defineStore("newRtcData", () => {
   let artico;
   let ongoingCall = null;
   let incomingCall = null;
   let outgoingCall = null;
+
 
   const callerId = ref("");
   const connectionId = ref("");
@@ -34,6 +37,7 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     artico = new Artico({
       id: id,
     });
+
 
     artico.on("call", (call) => {
       let { metadata } = call;
@@ -152,8 +156,15 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
 
   const toggleMute = () => {
     isMuted.value = !isMuted.value;
-    console.log(myAudioStream.value.getAudioTracks()[0].enabled);
-    myAudioStream.value.getAudioTracks()[0].enabled = !isMuted.value;
+    // console.log(myAudioStream.value.getAudioTracks()[0].enabled);
+    // myAudioStream.value.getAudioTracks()[0].enabled = !isMuted.value;
+    if (isMuted.value) {
+      ongoingCall.removeStream(myAudioStream.value);
+    } else {
+      ongoingCall.addStream(myAudioStream.value, {
+        id: "audio",
+      });
+    }
   };
 
   const rejectCall = () => {

@@ -80,6 +80,11 @@
     v-if="rtcData.isCallIncoming"
     :callerId="rtcData.callerId"
   />
+
+  <audio :src="ringing" autoplay loop v-if="rtcData.isCallIncoming"></audio>
+  <audio :src="waiting" autoplay loop v-if="rtcData.isCallOutgoing"></audio>
+
+
   <CallPopUp v-if="rtcData.isCallOutgoing || rtcData.isCallInProgress" />
   <audio autoplay ref="audioRef"></audio>
 </template>
@@ -91,6 +96,8 @@ import {
   useFirestore,
   useFirebaseAuth,
 } from "vuefire";
+import ringing from "@/assets/ringing.wav";
+import waiting from "@/assets/waiting.wav";
 import {
   addDoc,
   collection,
@@ -255,7 +262,7 @@ watch(rtcData, (newVal) => {
       "notficationChats",
       JSON.stringify(rtcData.notficationChats)
     );
-  }
+  } 
 });
 </script>
 
