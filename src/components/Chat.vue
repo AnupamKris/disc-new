@@ -37,18 +37,26 @@
             <p>{{ convertTimestampToDate(chat.timestamp) }}</p>
           </div>
           <p
-            class="message"
+            class="message image"
             v-if="
-              ['png', 'jpg', 'jpeg'].includes(
-                chat.receiverPath?.split('.').pop()
-              )
+              ['png', 'jpg', 'jpeg'].includes(chat.senderPath?.split('.').pop())
             "
           >
-            <ion-icon
-              v-if="chat.type == 'file'"
-              name="document-attach"
-            ></ion-icon>
-            {{ chat.message }} previewwwww
+            <img :src="imageUrls[chat.message]" alt="" />
+          </p>
+          <p
+            class="message image"
+            v-else-if="['mp4'].includes(chat.senderPath?.split('.').pop())"
+          >
+            <video :src="imageUrls[chat.message]" alt="" controls />
+          </p>
+          <p
+            class="message audio"
+            v-else-if="
+              ['mp3', 'wav'].includes(chat.senderPath?.split('.').pop())
+            "
+          >
+            <audio :src="imageUrls[chat.message]" alt="" controls />
           </p>
           <p class="message" v-else>
             <ion-icon
@@ -82,9 +90,10 @@ import {
   useDocument,
   getCurrentUser,
 } from "vuefire";
-import { readBinaryFile } from "@tauri-apps/api/fs";
+import { BaseDirectory, exists, readBinaryFile } from "@tauri-apps/api/fs";
 import { open } from "@tauri-apps/api/dialog";
 
+const imageUrls = ref({});
 const db = useFirestore();
 const rtcData = useNewRtcDataStore();
 const transferFileName = ref("");
@@ -103,11 +112,23 @@ const callFriend = async () => {
   rtcData.callPeer(props.friend.username, stream);
 };
 
-const getImageIntoDataUrl = async (file) => {
-  let data = await readBinaryFile(file);
+const getImageIntoDataUrl = async (file, downloads) => {
+  let data;
+  console.log(file, downloads);
+  console.log(await exists(file), file);
+  if (downloads) {
+    data = await readBinaryFile(file, {
+      dir: BaseDirectory.Download,
+    });
+  } else {
+    data = await readBinaryFile(file);
+    console.log(data);
+  }
   let blob = new Blob([new Uint8Array(data)]);
   let url = URL.createObjectURL(blob);
-  return url;
+
+  imageUrls.value[file.split("\\").pop()] = url;
+  console.log(imageUrls.value);
 };
 
 const currentUser = await getCurrentUser();
@@ -165,6 +186,32 @@ const attachFile = async () => {
   // console.log(filename);
   rtcData.sendFile(props.friend.username, props.friend.chatId, path, filename);
 };
+
+watch(chats, (newVal) => {
+  console.log(newVal);
+  if (newVal.messages) {
+    setTimeout(() => {
+      chatsRef.value.scrollTop = chatsRef.value.scrollHeight;
+    }, 10);
+
+    newVal.messages.forEach((message) => {
+      if (
+        message.type == "file" &&
+        ["png", "jpg", "jpeg", "mp4", "mp3", "wav"].includes(
+          message.senderPath.split(".").pop()
+        )
+      ) {
+        if (message.sender == currentUser.displayName) {
+          let path = message.senderPath;
+          getImageIntoDataUrl(path, false);
+        } else {
+          let path = message.senderPath.split("\\").pop();
+          getImageIntoDataUrl(path, true);
+        }
+      }
+    });
+  }
+});
 
 watch(rtcData, (newVal) => {
   if (transferStarted.value && !newVal.isTransferInProgress) {
@@ -414,9 +461,40 @@ watch(rtcData, (newVal) => {
           justify-content: space-between;
           align-items: center;
 
+          img {
+            height: 100%;
+            width: 100%;
+            object-fit: cover;
+          }
+
+          video {
+            height: 100%;
+            width: 100%;
+            object-fit: cover;
+          }
+
           ion-icon {
             font-size: 24px;
             margin: 0 10px;
+          }
+        }
+
+        .image {
+          height: 200px;
+          width: fit-content;
+          max-width: 100%;
+          border-radius: 5px;
+          background: #282c34;
+          padding: 0 10px;
+
+          display: flex;
+          justify-content: center;
+          align-items: center;
+
+          img {
+            height: 100%;
+            width: 100%;
+            object-fit: cover;
           }
         }
       }
