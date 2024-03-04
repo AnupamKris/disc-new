@@ -6,8 +6,11 @@ import {
   writeBinaryFile,
   BaseDirectory,
 } from "@tauri-apps/api/fs";
+import { arrayUnion, doc, updateDoc } from "firebase/firestore";
+import { useFirestore } from "vuefire";
 
 export const useNewRtcDataStore = defineStore("newRtcData", () => {
+  const db = useFirestore();
   let artico;
   let ongoingCall = null;
   let incomingCall = null;
@@ -39,13 +42,14 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
 
   const sendFileChat = async (chatId, username, filename) => {
     let chatRef = doc(db, "chats", chatId);
+    console.log(chatRef, chatId, username, filename);
     let chatData = {
       message: filename,
-      sender: currentUser.displayName,
+      sender: username,
       type: "file",
       timestamp: new Date(),
     };
-    chatInput.value = "";
+
     await updateDoc(chatRef, {
       messages: arrayUnion(chatData),
     });
@@ -301,7 +305,7 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     }, 500);
   };
 
-  const sendFile = async (peerId, username, filepath, filename) => {
+  const sendFile = async (peerId, chatId, filepath, filename) => {
     let chunksize = 100000;
 
     let shortFilename = filename.split(".")[0].substring(0, 10);
@@ -317,7 +321,7 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
       filename: filename,
       length: file.length,
       totalChunks: Math.ceil(file.length / chunksize),
-      chatId: "chatId",
+      chatId: chatId,
     });
     // var binaryString = String.fromCharCode.apply(null, file);
 
