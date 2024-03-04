@@ -12,10 +12,13 @@
       <div
         v-for="(chat, index) in chats.messages"
         :key="chat.timestamp"
-        :class="{
-          same: index != 0 && chats.messages[index - 1].sender == chat.sender,
-        }"
         class="chat"
+        :class="
+          ({
+            same: index != 0 && chats.messages[index - 1].sender == chat.sender,
+          },
+          chat.type)
+        "
       >
         <span
           :class="{
@@ -33,7 +36,13 @@
             <h3>{{ chat.sender }}</h3>
             <p>{{ convertTimestampToDate(chat.timestamp) }}</p>
           </div>
-          <p>{{ chat.message }}</p>
+          <p class="message">
+            <ion-icon
+              v-if="chat.type == 'file'"
+              name="document-attach"
+            ></ion-icon>
+            {{ chat.message }}
+          </p>
         </div>
       </div>
     </div>
@@ -275,6 +284,7 @@ watch(rtcData, (newVal) => {
     overflow: auto;
     display: flex;
     flex-direction: column;
+    padding-bottom: 20px;
 
     &::-webkit-scrollbar {
       width: 10px;
@@ -362,6 +372,33 @@ watch(rtcData, (newVal) => {
 
     .same {
       padding-top: 1px;
+    }
+
+    .file {
+      .content {
+        display: block;
+
+        .message {
+          width: fit-content;
+          font-size: 14px;
+          color: #abb2bf;
+          margin-top: 10px;
+          background: #282c34;
+          padding: 0 10px;
+
+          height: 60px;
+          border-radius: 5px;
+
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+
+          ion-icon {
+            font-size: 24px;
+            margin: 0 10px;
+          }
+        }
+      }
     }
   }
 

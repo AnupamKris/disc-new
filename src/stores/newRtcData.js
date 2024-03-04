@@ -54,7 +54,7 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
       messages: arrayUnion(chatData),
     });
 
-    rtcData.sendChatNotification(username);
+    sendChatNotification(username);
   };
 
   const createPeerConnection = (id) => {
@@ -322,6 +322,7 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
       length: file.length,
       totalChunks: Math.ceil(file.length / chunksize),
       chatId: chatId,
+      senderPath: filepath,
     });
     // var binaryString = String.fromCharCode.apply(null, file);
 
