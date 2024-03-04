@@ -36,7 +36,21 @@
             <h3>{{ chat.sender }}</h3>
             <p>{{ convertTimestampToDate(chat.timestamp) }}</p>
           </div>
-          <p class="message">
+          <p
+            class="message"
+            v-if="
+              ['png', 'jpg', 'jpeg'].includes(
+                chat.receiverPath.split('.').pop()
+              )
+            "
+          >
+            <ion-icon
+              v-if="chat.type == 'file'"
+              name="document-attach"
+            ></ion-icon>
+            {{ chat.message }} previewwwww
+          </p>
+          <p class="message" v-else>
             <ion-icon
               v-if="chat.type == 'file'"
               name="document-attach"
@@ -87,6 +101,13 @@ const emit = defineEmits(["rejectCall", "acceptCall"]);
 const callFriend = async () => {
   let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   rtcData.callPeer(props.friend.username, stream);
+};
+
+const getImageIntoDataUrl = async (file) => {
+  let data = await readBinaryFile(file);
+  let blob = new Blob([new Uint8Array(data)]);
+  let url = URL.createObjectURL(blob);
+  return url;
 };
 
 const currentUser = await getCurrentUser();

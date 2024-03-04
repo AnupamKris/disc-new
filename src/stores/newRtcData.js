@@ -40,13 +40,21 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
 
   // const isNotification = ref(false);
 
-  const sendFileChat = async (chatId, username, filename) => {
+  const sendFileChat = async (
+    chatId,
+    username,
+    filename,
+    senderPath,
+    recieverPath
+  ) => {
     let chatRef = doc(db, "chats", chatId);
     console.log(chatRef, chatId, username, filename);
     let chatData = {
       message: filename,
       sender: username,
       type: "file",
+      senderPath: senderPath,
+      recieverPath: recieverPath,
       timestamp: new Date(),
     };
 
@@ -105,7 +113,9 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
                 await sendFileChat(
                   metadata.chatId,
                   metadata.username,
-                  metadata.filename
+                  metadata.filename,
+                  metadata.senderPath,
+                  BaseDirectory.Download + "\\" + metadata.filename
                 );
                 call.hangup();
                 setTimeout(() => {
