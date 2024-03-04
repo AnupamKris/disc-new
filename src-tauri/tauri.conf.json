@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "Super Chat",
-    "version": "0.5.1"
+    "version": "0.5.10"
   },
   "tauri": {
     "allowlist": {
@@ -26,7 +26,20 @@
       },
       "fs": {
         "all": false,
-        "readFile": true
+        "readFile": true,
+        "writeFile": true,
+        "scope": [
+          "*",
+          "**"
+        ]
+      },
+      "dialog": {
+        "all": false,
+        "ask": false,
+        "confirm": false,
+        "message": false,
+        "open": true,
+        "save": false
       }
     },
     "bundle": {

@@ -8,28 +8,17 @@
         </div>
       </div>
     </div>
-    <div class="chats" v-if="chats">
-      <div
-        v-for="(chat, index) in chats.messages"
-        :key="chat.timestamp"
-        :class="{
-          same: index != 0 && chats.messages[index - 1].sender == chat.sender,
-        }"
-        class="chat"
-      >
-        <span
-          :class="{
-            visible:
-              index == 0 || chats.messages[index - 1].sender != chat.sender,
-          }"
-          >{{ chat.sender[0].toUpperCase() }}</span
-        >
+    <div class="chats" v-if="chats" ref="chatsRef">
+      <div v-for="(chat, index) in chats.messages" :key="chat.timestamp" :class="{
+        same: index != 0 && chats.messages[index - 1].sender == chat.sender,
+      }" class="chat">
+        <span :class="{
+        visible:
+          index == 0 || chats.messages[index - 1].sender != chat.sender,
+      }">{{ chat.sender[0].toUpperCase() }}</span>
         <div class="content">
-          <div
-            class="sender"
-            :class="{ self: chat.sender == currentUser.displayName }"
-            v-if="index == 0 || chats.messages[index - 1].sender != chat.sender"
-          >
+          <div class="sender" :class="{ self: chat.sender == currentUser.displayName }"
+            v-if="index == 0 || chats.messages[index - 1].sender != chat.sender">
             <h3>{{ chat.sender }}</h3>
             <p>{{ convertTimestampToDate(chat.timestamp) }}</p>
           </div>
@@ -38,7 +27,7 @@
       </div>
     </div>
     <div class="inputs">
-      <button @click="sendChat" class="attach">
+      <button @click="attachFile" class="attach">
         <ion-icon name="attach-outline"></ion-icon>
       </button>
       <input type="text" v-model="chatInput" @keyup.enter="sendChat" />
@@ -46,6 +35,9 @@
         <ion-icon name="send"></ion-icon>
       </button>
     </div>
+
+    <FileProgress v-if="transferStarted || rtcData.isTransferInProgress" :isProgress="rtcData.isTransferInProgress"
+      :progress="rtcData.transferProgress" :filename="rtcData.transferFileName" />
   </div>
 </template>
 
@@ -59,9 +51,14 @@ import {
   useDocument,
   getCurrentUser,
 } from "vuefire";
+import { readBinaryFile } from "@tauri-apps/api/fs"
+import { open } from "@tauri-apps/api/dialog"
 
 const db = useFirestore();
 const rtcData = useNewRtcDataStore();
+const transferFileName = ref("");
+const transferStarted = ref(false);
+const chatsRef = ref(null)
 
 const props = defineProps({
   friend: Object,
@@ -120,6 +117,25 @@ const sendChat = async () => {
 
   rtcData.sendChatNotification(props.friend.username);
 };
+
+const attachFile = async () => {
+  let path = await open({ directory: false, multiple: false });
+  if (!path) return;
+  transferStarted.value = true;
+  let filename = path.split("\\").pop();
+  transferFileName.value = filename;
+  let file = await readBinaryFile(path);
+  console.log(filename);
+  rtcData.sendFile(props.friend.username, file, filename);
+};
+
+watch(rtcData, (newVal) => {
+  if (transferStarted.value && !newVal.isTransferInProgress) {
+    transferStarted.value = false;
+  } else if (rtcData.notficationChats.includes(props.friend.username)) {
+    chatsRef.value.scrollTop = chatsRef.value.scrollHeight;
+  }
+});
 </script>
 
 <style lang="scss" scoped>
@@ -131,6 +147,7 @@ const sendChat = async () => {
 
   display: flex;
   flex-direction: column;
+  position: relative;
 
   .title {
     height: 45px;
@@ -212,6 +229,7 @@ const sendChat = async () => {
         background: #4d78cc;
       }
     }
+
     .buttons {
       height: 50px;
       // width: 100;
@@ -307,6 +325,7 @@ const sendChat = async () => {
           word-break: break-all;
         }
       }
+
       .sender {
         display: flex;
         // justify-content: center;
@@ -318,6 +337,7 @@ const sendChat = async () => {
           display: flex;
           justify-content: center;
         }
+
         p {
           font-size: 10px;
           color: #abb2bf;
@@ -392,9 +412,11 @@ const sendChat = async () => {
   0% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.2);
   }
+
   100% {
     transform: scale(1);
   }

@@ -1,7 +1,7 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
 import { Artico } from "@rtco/client";
-// import { readBinaryFile } from "@tauri-apps/api/fs";
+import { writeBinaryFile, BaseDirectory } from "@tauri-apps/api/fs";
 
 
 export const useNewRtcDataStore = defineStore("newRtcData", () => {
@@ -20,7 +20,8 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
   const myAudioStream = ref(null);
   const myVideoStream = ref(null);
   const myScreenStream = ref(null);
-
+  const transferProgress = ref(0);
+  const transferFileName = ref("");
   const otherAudioStream = ref(null);
 
   const isConnected = ref(false);
@@ -30,6 +31,8 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
   const isScreenSharing = ref(false);
   const isCallOutgoing = ref(false);
   const isCallInProgress = ref(false);
+  const isTransferInProgress = ref(false);
+
   // const isNotification = ref(false);
 
   const createPeerConnection = (id) => {
@@ -47,6 +50,55 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
         notficationChats.value.push(metadata.username);
         console.log(notficationChats);
         call.hangup();
+        return;
+      } else if (metadata.type == "file") {
+        isTransferInProgress.value = true;
+        console.log("Incoming file from: ", metadata.username);
+        transferFileName.value = "Receiving " + metadata.filename + " from " + metadata.username;
+        call.answer();
+
+        var receivedData = new Uint8Array(metadata.length);
+        var i = 0;
+        var chunkNumber = 0;
+
+        call.on("open", () => {
+          console.log("Call opened");
+          isTransferInProgress.value = true;
+        });
+
+        call.on("data", async (data) => {
+          if (data == "EOF") {
+            let interval = setInterval(async () => {
+              if (!isTransferInProgress.value) {
+                clearInterval(interval);
+                console.log("EOF received", i, metadata.length, receivedData[i - 1]);
+                await writeBinaryFile(metadata.filename, receivedData,
+                  { dir: BaseDirectory.Download });
+                call.hangup();
+                isTransferInProgress.value = false;
+              } else {
+                console.log("EOF received waiting for completion", i, metadata.length);
+              }
+            }, 500);
+          } else {
+            console.log("==", i);
+            for (var j = 0; j < data.length; j++) {
+              receivedData[j + i] = data.charCodeAt(j);
+            }
+            i += data.length;
+            console.log(i, metadata.length, i == metadata.length, i == metadata.length ? "Transfer complete" : "Transfer incomplete");
+            call.send(JSON.stringify({ type: "ack", chunk: chunkNumber }));
+            transferProgress.value = (chunkNumber / metadata.totalChunks) * 100;
+            // console.log(transferProgress.value, i, metadata.totalChunks);
+            if (i == metadata.length) {
+              isTransferInProgress.value = false;
+              console.log("File transfer complete");
+              transferProgress.value = 0;
+            }
+            chunkNumber++;
+          }
+          // console.log("Data received: ", data);
+        });
         return;
       }
 
@@ -95,6 +147,12 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     isCallOutgoing.value = true;
 
     console.log(call, outgoingCall);
+
+    setTimeout(() => {
+      if (!isCallInProgress.value) {
+        rejectCall();
+      }
+    }, 1000 * 30);
 
     call.on("open", () => {
       console.log("Call opened");
@@ -203,6 +261,81 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     }, 500);
   };
 
+  const sendFile = async (peerId, file, filename) => {
+    let chunksize = 100000;
+
+    let call = artico.call(peerId, {
+      username: connectionId.value,
+      type: "file",
+      filename: filename,
+      length: file.length,
+      totalChunks: Math.ceil(file.length / chunksize)
+    });
+    // var binaryString = String.fromCharCode.apply(null, file);
+    transferFileName.value = "Sending " + filename + " to " + peerId;
+    var chunks = [];
+
+    // read the uint8 array in chunks
+
+    for (var i = 0; i < file.length; i += chunksize) {
+      chunks.push(file.subarray(i, i + chunksize));
+    }
+
+
+
+    console.log(chunks);
+
+    // return
+
+
+    // console.log(binaryString);
+    // // convert binary uint 8 as chunk of strings
+    // // send in 100kb chunks
+    // var chunkSize = 100000;
+    // var chunks = [];
+    // for (var i = 0; i < binaryString.length; i += chunkSize) {
+    //   chunks.push(binaryString.substring(i, i + chunkSize));
+    // }
+    // console.log(chunks);
+    call.on("open", () => {
+      console.log("Call opened");
+      // chunks.forEach((chunk) => {
+      //   let chunkString = String.fromCharCode.apply(null, chunk);
+      //   call.send(chunkString);
+      // });
+      isTransferInProgress.value = true;
+      let i = 0
+      let chunk = String.fromCharCode.apply(null, chunks[i]);
+      call.send(chunk);
+
+      call.on("data", (data) => {
+        let parsedData = JSON.parse(data);
+        if (parsedData.type == "ack" && parsedData.chunk == i) {
+          console.log("Ack received for chunk: ", i);
+          transferProgress.value = (i / chunks.length) * 100;
+          i++;
+          if (i < chunks.length) {
+            let chunk = String.fromCharCode.apply(null, chunks[i]);
+            call.send(chunk);
+          } else {
+            call.send("EOF");
+            isTransferInProgress.value = false;
+            transferProgress.value = 0;
+            console.log("EOF sent");
+          }
+        } else {
+          console.log("Invalid ack received");
+          // call.send("");
+        }
+      })
+
+    });
+
+
+    // let file = await readBinaryFile(file);
+    // console.log(file);
+  };
+
   return {
     ongoingCall,
     outgoingCall,
@@ -215,6 +348,8 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     incomingCall,
     friendsObjects,
     notficationChats,
+    transferProgress,
+    transferFileName,
 
     isCallIncoming,
     isMuted,
@@ -223,6 +358,7 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     isCallOutgoing,
     isCallInProgress,
     isConnected,
+    isTransferInProgress,
 
     createPeerConnection,
     callPeer,
@@ -230,5 +366,6 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     toggleMute,
     rejectCall,
     sendChatNotification,
+    sendFile
   };
 });

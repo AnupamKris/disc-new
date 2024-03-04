@@ -2,12 +2,7 @@
   <div class="overlay" @click.self="close">
     <div class="modal">
       <h3>Add Friend</h3>
-      <InputField
-        label="Username"
-        type="text"
-        v-model="username"
-        :errorMessage="errorMessages.username"
-      />
+      <InputField label="Username" type="text" v-model="username" :errorMessage="errorMessages.username" />
       <UIButton text="Add Friend" @click.prevent="addFriend" />
     </div>
   </div>
@@ -104,6 +99,8 @@ const close = () => {
 
   top: 0;
   left: 0;
+
+  z-index: 5;
 
   height: 100%;
   width: 100%;
