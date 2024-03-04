@@ -40,7 +40,7 @@
             class="message"
             v-if="
               ['png', 'jpg', 'jpeg'].includes(
-                chat.receiverPath.split('.').pop()
+                chat.receiverPath?.split('.').pop()
               )
             "
           >
