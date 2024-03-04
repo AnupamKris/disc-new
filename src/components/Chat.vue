@@ -9,16 +9,27 @@
       </div>
     </div>
     <div class="chats" v-if="chats" ref="chatsRef">
-      <div v-for="(chat, index) in chats.messages" :key="chat.timestamp" :class="{
-        same: index != 0 && chats.messages[index - 1].sender == chat.sender,
-      }" class="chat">
-        <span :class="{
-        visible:
-          index == 0 || chats.messages[index - 1].sender != chat.sender,
-      }">{{ chat.sender[0].toUpperCase() }}</span>
+      <div
+        v-for="(chat, index) in chats.messages"
+        :key="chat.timestamp"
+        :class="{
+          same: index != 0 && chats.messages[index - 1].sender == chat.sender,
+        }"
+        class="chat"
+      >
+        <span
+          :class="{
+            visible:
+              index == 0 || chats.messages[index - 1].sender != chat.sender,
+          }"
+          >{{ chat.sender[0].toUpperCase() }}</span
+        >
         <div class="content">
-          <div class="sender" :class="{ self: chat.sender == currentUser.displayName }"
-            v-if="index == 0 || chats.messages[index - 1].sender != chat.sender">
+          <div
+            class="sender"
+            :class="{ self: chat.sender == currentUser.displayName }"
+            v-if="index == 0 || chats.messages[index - 1].sender != chat.sender"
+          >
             <h3>{{ chat.sender }}</h3>
             <p>{{ convertTimestampToDate(chat.timestamp) }}</p>
           </div>
@@ -35,9 +46,6 @@
         <ion-icon name="send"></ion-icon>
       </button>
     </div>
-
-    <FileProgress v-if="transferStarted || rtcData.isTransferInProgress" :isProgress="rtcData.isTransferInProgress"
-      :progress="rtcData.transferProgress" :filename="rtcData.transferFileName" />
   </div>
 </template>
 
@@ -51,14 +59,14 @@ import {
   useDocument,
   getCurrentUser,
 } from "vuefire";
-import { readBinaryFile } from "@tauri-apps/api/fs"
-import { open } from "@tauri-apps/api/dialog"
+import { readBinaryFile } from "@tauri-apps/api/fs";
+import { open } from "@tauri-apps/api/dialog";
 
 const db = useFirestore();
 const rtcData = useNewRtcDataStore();
 const transferFileName = ref("");
 const transferStarted = ref(false);
-const chatsRef = ref(null)
+const chatsRef = ref(null);
 
 const props = defineProps({
   friend: Object,
@@ -121,12 +129,11 @@ const sendChat = async () => {
 const attachFile = async () => {
   let path = await open({ directory: false, multiple: false });
   if (!path) return;
-  transferStarted.value = true;
   let filename = path.split("\\").pop();
-  transferFileName.value = filename;
-  let file = await readBinaryFile(path);
-  console.log(filename);
-  rtcData.sendFile(props.friend.username, file, filename);
+  rtcData.isTransferInProgress = true;
+  // let file = await readBinaryFile(path);
+  // console.log(filename);
+  rtcData.sendFile(props.friend.username, props.friend.chatId, path, filename);
 };
 
 watch(rtcData, (newVal) => {

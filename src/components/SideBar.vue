@@ -1,15 +1,30 @@
 <template>
   <div class="sidebar" v-if="userDoc && statusDoc">
-    <AddFriend v-if="addFriendVisible" @close="addFriendVisible = false"
-      @requestSent="alertReq('msg', 'Friend Request Sent!')" />
-    <AlertMessage :type="alertData.type" :message="alertData.message" v-if="alertData.message" />
+    <AddFriend
+      v-if="addFriendVisible"
+      @close="addFriendVisible = false"
+      @requestSent="alertReq('msg', 'Friend Request Sent!')"
+    />
+    <AlertMessage
+      :type="alertData.type"
+      :message="alertData.message"
+      v-if="alertData.message"
+    />
 
-    <div class="reqs" v-if="userDoc.friendRequests.filter((req) => req.type === 'incoming').length
-    ">
+    <div
+      class="reqs"
+      v-if="
+        userDoc.friendRequests.filter((req) => req.type === 'incoming').length
+      "
+    >
       <h3>Friend Requests</h3>
-      <div class="req" v-for="req in userDoc.friendRequests.filter(
-    (req) => req.type === 'incoming'
-  )" :key="req">
+      <div
+        class="req"
+        v-for="req in userDoc.friendRequests.filter(
+          (req) => req.type === 'incoming'
+        )"
+        :key="req"
+      >
         <p>{{ req.username }}</p>
         <div class="req-ctl">
           <button @click="acceptFriend(req)">
@@ -23,15 +38,24 @@
     </div>
     <div class="friends">
       <h3>Friends</h3>
-      <div class="friend" v-for="friend in userDoc.friends" :key="friend" @click="selectFriend(friend)">
+      <div
+        class="friend"
+        v-for="friend in userDoc.friends"
+        :key="friend"
+        @click="selectFriend(friend)"
+      >
         <p class="name">{{ friend.username }}</p>
-        <p class="unseen" v-if="rtcData.notficationChats.filter((uname) => uname == friend.username)
-      .length
-    ">
+        <p
+          class="unseen"
+          v-if="
+            rtcData.notficationChats.filter((uname) => uname == friend.username)
+              .length
+          "
+        >
           {{
-    rtcData.notficationChats.filter((uname) => uname == friend.username)
-      .length
-  }}
+            rtcData.notficationChats.filter((uname) => uname == friend.username)
+              .length
+          }}
         </p>
         <!-- <p
           class="stat online"
@@ -52,8 +76,16 @@
       </button>
     </div>
   </div>
-  <CallNotification v-if="rtcData.isCallIncoming" :callerId="rtcData.callerId" />
-
+  <CallNotification
+    v-if="rtcData.isCallIncoming"
+    :callerId="rtcData.callerId"
+  />
+  <FileProgress
+    v-if="rtcData.isTransferInProgress"
+    :isProgress="rtcData.isTransferInProgress"
+    :progress="rtcData.transferProgress"
+    :filename="rtcData.transferFileName"
+  />
   <audio :src="ringing" autoplay loop v-if="rtcData.isCallIncoming"></audio>
   <audio :src="waiting" autoplay loop v-if="rtcData.isCallOutgoing"></audio>
 

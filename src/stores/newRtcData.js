@@ -1,15 +1,17 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
 import { Artico } from "@rtco/client";
-import { writeBinaryFile, BaseDirectory } from "@tauri-apps/api/fs";
-
+import {
+  readBinaryFile,
+  writeBinaryFile,
+  BaseDirectory,
+} from "@tauri-apps/api/fs";
 
 export const useNewRtcDataStore = defineStore("newRtcData", () => {
   let artico;
   let ongoingCall = null;
   let incomingCall = null;
   let outgoingCall = null;
-
 
   const callerId = ref("");
   const connectionId = ref("");
@@ -35,12 +37,27 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
 
   // const isNotification = ref(false);
 
+  const sendFileChat = async (chatId, username, filename) => {
+    let chatRef = doc(db, "chats", chatId);
+    let chatData = {
+      message: filename,
+      sender: currentUser.displayName,
+      type: "file",
+      timestamp: new Date(),
+    };
+    chatInput.value = "";
+    await updateDoc(chatRef, {
+      messages: arrayUnion(chatData),
+    });
+
+    rtcData.sendChatNotification(username);
+  };
+
   const createPeerConnection = (id) => {
     console.log("Creating peer connection", id);
     artico = new Artico({
       id: id,
     });
-
 
     artico.on("call", (call) => {
       let { metadata } = call;
@@ -54,7 +71,8 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
       } else if (metadata.type == "file") {
         isTransferInProgress.value = true;
         console.log("Incoming file from: ", metadata.username);
-        transferFileName.value = "Receiving " + metadata.filename + " from " + metadata.username;
+        transferFileName.value =
+          "Receiving " + metadata.filename + " from " + metadata.username;
         call.answer();
 
         var receivedData = new Uint8Array(metadata.length);
@@ -71,13 +89,30 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
             let interval = setInterval(async () => {
               if (!isTransferInProgress.value) {
                 clearInterval(interval);
-                console.log("EOF received", i, metadata.length, receivedData[i - 1]);
-                await writeBinaryFile(metadata.filename, receivedData,
-                  { dir: BaseDirectory.Download });
+                console.log(
+                  "EOF received",
+                  i,
+                  metadata.length,
+                  receivedData[i - 1]
+                );
+                await writeBinaryFile(metadata.filename, receivedData, {
+                  dir: BaseDirectory.Download,
+                });
+                await sendFileChat(
+                  metadata.chatId,
+                  metadata.username,
+                  metadata.filename
+                );
                 call.hangup();
-                isTransferInProgress.value = false;
+                setTimeout(() => {
+                  isTransferInProgress.value = false;
+                }, 1000);
               } else {
-                console.log("EOF received waiting for completion", i, metadata.length);
+                console.log(
+                  "EOF received waiting for completion",
+                  i,
+                  metadata.length
+                );
               }
             }, 500);
           } else {
@@ -86,7 +121,12 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
               receivedData[j + i] = data.charCodeAt(j);
             }
             i += data.length;
-            console.log(i, metadata.length, i == metadata.length, i == metadata.length ? "Transfer complete" : "Transfer incomplete");
+            console.log(
+              i,
+              metadata.length,
+              i == metadata.length,
+              i == metadata.length ? "Transfer complete" : "Transfer incomplete"
+            );
             call.send(JSON.stringify({ type: "ack", chunk: chunkNumber }));
             transferProgress.value = (chunkNumber / metadata.totalChunks) * 100;
             // console.log(transferProgress.value, i, metadata.totalChunks);
@@ -261,19 +301,25 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     }, 500);
   };
 
-  const sendFile = async (peerId, file, filename) => {
+  const sendFile = async (peerId, username, filepath, filename) => {
     let chunksize = 100000;
 
+    let shortFilename = filename.split(".")[0].substring(0, 10);
+    +"..." + filename.split(".")[1];
+    transferFileName.value = "Processing " + shortFilename + " to " + peerId;
+    var chunks = [];
+
+    let file = await readBinaryFile(filepath);
+    transferFileName.value = "Waiting for connection...";
     let call = artico.call(peerId, {
       username: connectionId.value,
       type: "file",
       filename: filename,
       length: file.length,
-      totalChunks: Math.ceil(file.length / chunksize)
+      totalChunks: Math.ceil(file.length / chunksize),
+      chatId: "chatId",
     });
     // var binaryString = String.fromCharCode.apply(null, file);
-    transferFileName.value = "Sending " + filename + " to " + peerId;
-    var chunks = [];
 
     // read the uint8 array in chunks
 
@@ -281,12 +327,9 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
       chunks.push(file.subarray(i, i + chunksize));
     }
 
-
-
     console.log(chunks);
 
     // return
-
 
     // console.log(binaryString);
     // // convert binary uint 8 as chunk of strings
@@ -299,12 +342,13 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     // console.log(chunks);
     call.on("open", () => {
       console.log("Call opened");
+      transferFileName.value = "Sending " + shortFilename + " to " + peerId;
       // chunks.forEach((chunk) => {
       //   let chunkString = String.fromCharCode.apply(null, chunk);
       //   call.send(chunkString);
       // });
       isTransferInProgress.value = true;
-      let i = 0
+      let i = 0;
       let chunk = String.fromCharCode.apply(null, chunks[i]);
       call.send(chunk);
 
@@ -319,18 +363,20 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
             call.send(chunk);
           } else {
             call.send("EOF");
-            isTransferInProgress.value = false;
-            transferProgress.value = 0;
-            console.log("EOF sent");
+            transferFileName.value = "File sent Successfully to " + peerId;
+            setTimeout(() => {
+              isTransferInProgress.value = false;
+              transferProgress.value = 0;
+              transferFileName.value = "";
+              console.log("EOF sent");
+            }, 1000);
           }
         } else {
           console.log("Invalid ack received");
           // call.send("");
         }
-      })
-
+      });
     });
-
 
     // let file = await readBinaryFile(file);
     // console.log(file);
@@ -366,6 +412,6 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     toggleMute,
     rejectCall,
     sendChatNotification,
-    sendFile
+    sendFile,
   };
 });

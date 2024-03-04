@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@rtco/client": "^0.2.3",
+    "@rtco/client": "^0.2.4",
     "@tauri-apps/api": "^1.5.3",
     "axios": "^1.6.7",
     "firebase": "^10.8.0",
@@ -21,6 +21,7 @@
     "unplugin-vue-components": "^0.26.0",
     "vue": "^3.4.15",
     "vue-router": "^4.2.5",
+    "vue3-circle-progress": "^1.0.7",
     "vuefire": "^3.1.23"
   },
   "devDependencies": {

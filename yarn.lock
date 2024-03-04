@@ -783,22 +783,22 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.12.0.tgz#9ffdf9ed133a7464f4ae187eb9e1294413fab235"
   integrity sha512-ZYmr5mS2wd4Dew/JjT0Fqi2NPB/ZhZ2VvPp7SmvPZb4Y1CG/LRcS6tcRo2cYU7zLK5A7cdbhWnnWmUjoI4qapg==
 
-"@rtco/client@^0.2.3":
-  version "0.2.3"
-  resolved "https://registry.yarnpkg.com/@rtco/client/-/client-0.2.3.tgz#6c6080b8b1a2bb409629d84391fd2d0972fac181"
-  integrity sha512-+K2KTw+pVnJqfSBlUUwKc6IdkrYZLfpqrkmCRysjJrZYj1/wmNWsgTMNPVe4wtGguP98tPuDITi8zFiRoc4tjQ==
+"@rtco/client@^0.2.4":
+  version "0.2.4"
+  resolved "https://registry.yarnpkg.com/@rtco/client/-/client-0.2.4.tgz#784cb3e5d4c294e1a91b0808b898c02c903f3c39"
+  integrity sha512-uTgttdiJypVhb3YMWixnPDs44M9ckxtELb23PC61Wdv2e1/GLZ8l78FgDtFIIFyG4kH0mrU/SJnmQza6ifItwg==
   dependencies:
     "@paralleldrive/cuid2" "^2.2.1"
-    "@rtco/peer" "0.2.3"
+    "@rtco/peer" "0.2.4"
     bufferutil "^4.0.7"
     eventemitter3 "^5.0.1"
     socket.io-client "^4.6.2"
     utf-8-validate "^6.0.3"
 
-"@rtco/peer@0.2.3":
-  version "0.2.3"
-  resolved "https://registry.yarnpkg.com/@rtco/peer/-/peer-0.2.3.tgz#5f9ae0db57c120379d6f9e2b9c4cdeed2e3700d1"
-  integrity sha512-69bBkGV3s3kwfidyVLLIHIsOD99EwHnjt+wxwE0b/z5AfB7h2fjbkLNFuL+1JtMIRfxheYKqasDgVx8+0MAIiQ==
+"@rtco/peer@0.2.4":
+  version "0.2.4"
+  resolved "https://registry.yarnpkg.com/@rtco/peer/-/peer-0.2.4.tgz#649ac07afe700b9985d05446264d9377bfb1fa8c"
+  integrity sha512-3d7ge8PQ4rAgxrqvCR3G0D3jKz0v45snxYktjV16u7HHMJdfmn0FigBYp1hSBui9ezvZ7S54vHfGw/sJtZbBKA==
   dependencies:
     eventemitter3 "^5.0.1"
 
@@ -1806,6 +1806,11 @@ vue-router@^4.2.5:
   integrity sha512-dqUcs8tUeG+ssgWhcPbjHvazML16Oga5w34uCUmsk7i0BcnskoLGwjpa15fqMr2Fa5JgVBrdL2MEgqz6XZ/6IQ==
   dependencies:
     "@vue/devtools-api" "^6.5.1"
+
+vue3-circle-progress@^1.0.7:
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/vue3-circle-progress/-/vue3-circle-progress-1.0.7.tgz#43a7427e5dcb144714c1df11bf2a15a73d5b98c4"
+  integrity sha512-Z916xKQhuEcaOvwIfCFUX9r/gPUNd40G2aJbROcRtotm5FE4dZPP4S4iDEISexE9XMF813swkdc5VzCdFxfE8g==
 
 vue@^3.4.15:
   version "3.4.21"
