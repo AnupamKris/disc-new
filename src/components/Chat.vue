@@ -9,36 +9,69 @@
       </div>
     </div>
     <div class="chats" v-if="chats" ref="chatsRef">
-      <div v-for="(chat, index) in chats.messages" :key="chat.timestamp" class="chat" :class="({
-        same: index != 0 && chats.messages[index - 1].sender == chat.sender,
-      },
-        chat.type)
-        ">
-        <span :class="{
-        visible:
-          index == 0 || chats.messages[index - 1].sender != chat.sender,
-      }">{{ chat.sender[0].toUpperCase() }}</span>
+      <div
+        v-for="(chat, index) in chats.messages"
+        :key="chat.timestamp"
+        class="chat"
+        :class="
+          ({
+            same: index != 0 && chats.messages[index - 1].sender == chat.sender,
+          },
+          chat.type)
+        "
+      >
+        <span
+          :class="{
+            visible:
+              index == 0 || chats.messages[index - 1].sender != chat.sender,
+          }"
+          >{{ chat.sender[0].toUpperCase() }}</span
+        >
         <div class="content">
-          <div class="sender" :class="{ self: chat.sender == currentUser.displayName }"
-            v-if="index == 0 || chats.messages[index - 1].sender != chat.sender">
+          <div
+            class="sender"
+            :class="{ self: chat.sender == currentUser.displayName }"
+            v-if="index == 0 || chats.messages[index - 1].sender != chat.sender"
+          >
             <h3>{{ chat.sender }}</h3>
             <p>{{ convertTimestampToDate(chat.timestamp) }}</p>
           </div>
-          <p class="message image" v-if="['png', 'jpg', 'jpeg'].includes(chat.senderPath?.split('.').pop())">
+          <p
+            class="message image"
+            v-if="
+              ['png', 'jpg', 'jpeg'].includes(chat.senderPath?.split('.').pop())
+            "
+          >
             <!-- <img :src="imageUrls[chat.message]" alt="" /> -->
             <ImageViewer :imageUrl="imageUrls[chat.message]" />
           </p>
-          <p class="message image" v-else-if="['mp4'].includes(chat.senderPath?.split('.').pop())">
-            <VideoPlayer :videoUrl="imageUrls[chat.message]" :filename="chat.message" />
-
+          <p
+            class="message image"
+            v-else-if="['mp4'].includes(chat.senderPath?.split('.').pop())"
+          >
+            <VideoPlayer
+              :videoUrl="imageUrls[chat.message]"
+              :filename="chat.message"
+            />
           </p>
-          <p class="message audio" v-else-if="['mp3', 'wav'].includes(chat.senderPath?.split('.').pop())
-        ">
-            <AudioPlayer :audioUrl="imageUrls[chat.message]" :filename="chat.message" />
+          <p
+            class="message audio"
+            v-else-if="
+              ['mp3', 'wav'].includes(chat.senderPath?.split('.').pop())
+            "
+          >
+            <AudioPlayer
+              :audioUrl="imageUrls[chat.message]"
+              :filename="chat.message"
+            />
+            <!-- <AudioWave :audioUrl="imageUrls[chat.message]" /> -->
             <!-- <audio :src="imageUrls[chat.message]" alt="" controls /> -->
           </p>
           <p class="message" v-else>
-            <ion-icon v-if="chat.type == 'file'" name="document-attach"></ion-icon>
+            <ion-icon
+              v-if="chat.type == 'file'"
+              name="document-attach"
+            ></ion-icon>
             {{ chat.message }}
           </p>
         </div>
@@ -457,7 +490,6 @@ watch(rtcData, (newVal) => {
           }
         }
 
-
         .image {
           height: auto;
           width: fit-content;
@@ -466,7 +498,6 @@ watch(rtcData, (newVal) => {
           background: #282c34;
           padding: 0;
           overflow: hidden;
-
 
           display: flex;
           justify-content: center;
@@ -481,8 +512,6 @@ watch(rtcData, (newVal) => {
 
         .audio {
           height: 70px;
-
-
         }
       }
     }

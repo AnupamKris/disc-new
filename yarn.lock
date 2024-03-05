@@ -528,6 +528,14 @@
   resolved "https://registry.yarnpkg.com/@jridgewell/sourcemap-codec/-/sourcemap-codec-1.4.15.tgz#d7c6e6755c78567a951e04ab52ef0fd26de59f32"
   integrity sha512-eF2rxCRulEKXHTRiDrDy6erMYWqNw4LPdQ8UQA4huuxaQsVeRPFl2oM8oDGxMFhJUWZf9McpLtJasDDZb/Bpeg==
 
+"@meersagor/wavesurfer-vue@^0.0.4":
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/@meersagor/wavesurfer-vue/-/wavesurfer-vue-0.0.4.tgz#231950b75410d6dcdd3fd9a2cffb9a408f1c3132"
+  integrity sha512-sJzt0bkWz8+6Qb5iGDpRBg6kAkS0k9vZnCWaiA+xngwycuDl96+inyyF0zY1Mwl3979OS4gkftz+2js5dwvx7g==
+  dependencies:
+    vue "^3.3.11"
+    wavesurfer.js "^7.7.3"
+
 "@noble/hashes@^1.1.5":
   version "1.3.3"
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.3.3.tgz#39908da56a4adc270147bb07968bf3b16cfe1699"
@@ -1812,7 +1820,7 @@ vue3-circle-progress@^1.0.7:
   resolved "https://registry.yarnpkg.com/vue3-circle-progress/-/vue3-circle-progress-1.0.7.tgz#43a7427e5dcb144714c1df11bf2a15a73d5b98c4"
   integrity sha512-Z916xKQhuEcaOvwIfCFUX9r/gPUNd40G2aJbROcRtotm5FE4dZPP4S4iDEISexE9XMF813swkdc5VzCdFxfE8g==
 
-vue@^3.4.15:
+vue@^3.3.11, vue@^3.4.15:
   version "3.4.21"
   resolved "https://registry.yarnpkg.com/vue/-/vue-3.4.21.tgz#69ec30e267d358ee3a0ce16612ba89e00aaeb731"
   integrity sha512-5hjyV/jLEIKD/jYl4cavMcnzKwjMKohureP8ejn3hhEjwhWIhWeuzL2kJAjzl/WyVsgPY56Sy4Z40C3lVshxXA==
@@ -1829,6 +1837,11 @@ vuefire@^3.1.23:
   integrity sha512-bCz/3hw50+oilLBrUWQRRQccfhj0VeU8E+NZmFRnUe6D70yAMblRahLrQLmG6KBesJJeXexOEpRElP4pMq6zxA==
   dependencies:
     vue-demi latest
+
+wavesurfer.js@^7.7.3:
+  version "7.7.3"
+  resolved "https://registry.yarnpkg.com/wavesurfer.js/-/wavesurfer.js-7.7.3.tgz#f0fe8415abf29fdfcbb8d9b1ef0dedc7c70cd246"
+  integrity sha512-TC7cQb0RVggtNC+Dl05gcnhSFL5U+fww3ZYJUuqgfR+r9oY+bh/hChCipDFDjs5cWtuek3GEtsPXWa93a9XYxw==
 
 webpack-sources@^3.2.3:
   version "3.2.3"
