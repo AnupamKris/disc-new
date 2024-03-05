@@ -1,6 +1,6 @@
 <template>
   <div class="titlebar" data-tauri-drag-region>
-    <p>Discord</p>
+    <p>Super Chat</p>
     <div class="controls">
       <div class="ctl" @click="minimize">
         <ion-icon name="remove-outline"></ion-icon>

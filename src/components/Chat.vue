@@ -8,76 +8,44 @@
         </div>
       </div>
     </div>
-    <div
-      class="calling"
-      v-if="
-        (rtcData.callIncoming ||
-          rtcData.callInProgress ||
-          rtcData.callOutgoing) &&
-        rtcData.callerId == friend.username
-      "
-    >
-      <div class="profiles">
-        <div class="caller">
-          <h3>{{ rtcData.callerId[0].toUpperCase() }}</h3>
-        </div>
-        <div class="receiver">
-          <h3>{{ currentUser.displayName[0].toUpperCase() }}</h3>
-        </div>
-      </div>
-      <div class="buttons">
-        <button
-          @click="acceptCall"
-          v-if="!rtcData.callInProgress && !rtcData.callOutgoing"
-        >
-          <ion-icon name="call"></ion-icon>
-        </button>
-        <button v-if="rtcData.callInProgress">
-          <ion-icon
-            name="mic"
-            v-if="!rtcData.isMuted"
-            @click="rtcData.toggleMute"
-          ></ion-icon>
-          <ion-icon
-            name="mic-off"
-            v-else
-            @click="rtcData.toggleMute"
-          ></ion-icon>
-        </button>
-        <button @click="rejectCall"><ion-icon name="close"></ion-icon></button>
-      </div>
-    </div>
-    <div class="chats" v-if="chats">
-      <div
-        v-for="(chat, index) in chats.messages"
-        :key="chat.timestamp"
-        :class="{
-          same: index != 0 && chats.messages[index - 1].sender == chat.sender,
-        }"
-        class="chat"
-      >
-        <span
-          :class="{
-            visible:
-              index == 0 || chats.messages[index - 1].sender != chat.sender,
-          }"
-          >{{ chat.sender[0].toUpperCase() }}</span
-        >
+    <div class="chats" v-if="chats" ref="chatsRef">
+      <div v-for="(chat, index) in chats.messages" :key="chat.timestamp" class="chat" :class="({
+        same: index != 0 && chats.messages[index - 1].sender == chat.sender,
+      },
+        chat.type)
+        ">
+        <span :class="{
+        visible:
+          index == 0 || chats.messages[index - 1].sender != chat.sender,
+      }">{{ chat.sender[0].toUpperCase() }}</span>
         <div class="content">
-          <div
-            class="sender"
-            :class="{ self: chat.sender == currentUser.displayName }"
-            v-if="index == 0 || chats.messages[index - 1].sender != chat.sender"
-          >
+          <div class="sender" :class="{ self: chat.sender == currentUser.displayName }"
+            v-if="index == 0 || chats.messages[index - 1].sender != chat.sender">
             <h3>{{ chat.sender }}</h3>
             <p>{{ convertTimestampToDate(chat.timestamp) }}</p>
           </div>
-          <p>{{ chat.message }}</p>
+          <p class="message image" v-if="['png', 'jpg', 'jpeg'].includes(chat.senderPath?.split('.').pop())">
+            <!-- <img :src="imageUrls[chat.message]" alt="" /> -->
+            <ImageViewer :imageUrl="imageUrls[chat.message]" />
+          </p>
+          <p class="message image" v-else-if="['mp4'].includes(chat.senderPath?.split('.').pop())">
+            <VideoPlayer :videoUrl="imageUrls[chat.message]" :filename="chat.message" />
+
+          </p>
+          <p class="message audio" v-else-if="['mp3', 'wav'].includes(chat.senderPath?.split('.').pop())
+        ">
+            <AudioPlayer :audioUrl="imageUrls[chat.message]" :filename="chat.message" />
+            <!-- <audio :src="imageUrls[chat.message]" alt="" controls /> -->
+          </p>
+          <p class="message" v-else>
+            <ion-icon v-if="chat.type == 'file'" name="document-attach"></ion-icon>
+            {{ chat.message }}
+          </p>
         </div>
       </div>
     </div>
     <div class="inputs">
-      <button @click="sendChat" class="attach">
+      <button @click="attachFile" class="attach">
         <ion-icon name="attach-outline"></ion-icon>
       </button>
       <input type="text" v-model="chatInput" @keyup.enter="sendChat" />
@@ -90,27 +58,54 @@
 
 <script async setup>
 import { doc, collection, updateDoc, arrayUnion } from "firebase/firestore";
-import { watch } from "vue";
-import { useRtcDataStore } from "../stores/rtcData";
+import { watch, ref, onMounted } from "vue";
+import { useNewRtcDataStore } from "../stores/newRtcData";
 import {
   useFirestore,
   useCurrentUser,
   useDocument,
   getCurrentUser,
 } from "vuefire";
+import { BaseDirectory, exists, readBinaryFile } from "@tauri-apps/api/fs";
+import { open } from "@tauri-apps/api/dialog";
+import VideoPlayer from "./VideoPlayer.vue";
 
+const imageUrls = ref({});
 const db = useFirestore();
-const rtcData = useRtcDataStore();
+const rtcData = useNewRtcDataStore();
+const transferFileName = ref("");
+const transferStarted = ref(false);
+const chatsRef = ref(null);
 
 const props = defineProps({
   friend: Object,
   calling: Boolean,
 });
 
-const emit = defineEmits(["call", "rejectCall", "acceptCall"]);
+const emit = defineEmits(["rejectCall", "acceptCall"]);
 
-const callFriend = () => {
-  emit("call");
+const callFriend = async () => {
+  let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  rtcData.callPeer(props.friend.username, stream);
+};
+
+const getImageIntoDataUrl = async (file, downloads) => {
+  let data;
+  console.log(file, downloads);
+  console.log(await exists(file), file);
+  if (downloads) {
+    data = await readBinaryFile(file, {
+      dir: BaseDirectory.Download,
+    });
+  } else {
+    data = await readBinaryFile(file);
+    console.log(data);
+  }
+  let blob = new Blob([new Uint8Array(data)]);
+  let url = URL.createObjectURL(blob);
+
+  imageUrls.value[file.split("\\").pop()] = url;
+  console.log(imageUrls.value);
 };
 
 const currentUser = await getCurrentUser();
@@ -145,16 +140,63 @@ const chatInput = ref("");
 const sendChat = async () => {
   if (chatInput.value === "") return;
   let chatRef = doc(db, "chats", props.friend.chatId);
+  console.log(props.friend.chatId, "chatRef");
   let chatData = {
     message: chatInput.value,
     sender: currentUser.displayName,
     timestamp: new Date(),
   };
+  chatInput.value = "";
   await updateDoc(chatRef, {
     messages: arrayUnion(chatData),
   });
-  chatInput.value = "";
+
+  rtcData.sendChatNotification(props.friend.username);
 };
+
+const attachFile = async () => {
+  let path = await open({ directory: false, multiple: false });
+  if (!path) return;
+  let filename = path.split("\\").pop();
+  rtcData.isTransferInProgress = true;
+  // let file = await readBinaryFile(path);
+  // console.log(filename);
+  rtcData.sendFile(props.friend.username, props.friend.chatId, path, filename);
+};
+
+watch(chats, (newVal) => {
+  console.log(newVal);
+  if (newVal.messages) {
+    setTimeout(() => {
+      chatsRef.value.scrollTop = chatsRef.value.scrollHeight;
+    }, 10);
+
+    newVal.messages.forEach((message) => {
+      if (
+        message.type == "file" &&
+        ["png", "jpg", "jpeg", "mp4", "mp3", "wav"].includes(
+          message.senderPath.split(".").pop()
+        )
+      ) {
+        if (message.sender == currentUser.displayName) {
+          let path = message.senderPath;
+          getImageIntoDataUrl(path, false);
+        } else {
+          let path = message.senderPath.split("\\").pop();
+          getImageIntoDataUrl(path, true);
+        }
+      }
+    });
+  }
+});
+
+watch(rtcData, (newVal) => {
+  if (transferStarted.value && !newVal.isTransferInProgress) {
+    transferStarted.value = false;
+  } else if (rtcData.notficationChats.includes(props.friend.username)) {
+    chatsRef.value.scrollTop = chatsRef.value.scrollHeight;
+  }
+});
 </script>
 
 <style lang="scss" scoped>
@@ -166,6 +208,7 @@ const sendChat = async () => {
 
   display: flex;
   flex-direction: column;
+  position: relative;
 
   .title {
     height: 45px;
@@ -247,6 +290,7 @@ const sendChat = async () => {
         background: #4d78cc;
       }
     }
+
     .buttons {
       height: 50px;
       // width: 100;
@@ -285,6 +329,7 @@ const sendChat = async () => {
     overflow: auto;
     display: flex;
     flex-direction: column;
+    padding-bottom: 20px;
 
     &::-webkit-scrollbar {
       width: 10px;
@@ -342,6 +387,7 @@ const sendChat = async () => {
           word-break: break-all;
         }
       }
+
       .sender {
         display: flex;
         // justify-content: center;
@@ -353,6 +399,7 @@ const sendChat = async () => {
           display: flex;
           justify-content: center;
         }
+
         p {
           font-size: 10px;
           color: #abb2bf;
@@ -370,6 +417,74 @@ const sendChat = async () => {
 
     .same {
       padding-top: 1px;
+    }
+
+    .file {
+      .content {
+        display: block;
+
+        .message {
+          width: fit-content;
+          font-size: 14px;
+          color: #abb2bf;
+          margin-top: 10px;
+          background: #282c34;
+          padding: 0 10px;
+
+          height: 60px;
+          border-radius: 5px;
+
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+
+          img {
+            height: 100%;
+            width: 100%;
+            object-fit: cover;
+          }
+
+          .video-player {
+            height: 100%;
+            width: 100%;
+
+            object-fit: cover;
+          }
+
+          ion-icon {
+            font-size: 24px;
+            margin: 0 10px;
+          }
+        }
+
+
+        .image {
+          height: auto;
+          width: fit-content;
+          max-width: 50%;
+          border-radius: 5px;
+          background: #282c34;
+          padding: 0;
+          overflow: hidden;
+
+
+          display: flex;
+          justify-content: center;
+          align-items: center;
+
+          img {
+            height: 100%;
+            width: 100%;
+            object-fit: cover;
+          }
+        }
+
+        .audio {
+          height: 70px;
+
+
+        }
+      }
     }
   }
 
@@ -427,9 +542,11 @@ const sendChat = async () => {
   0% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.2);
   }
+
   100% {
     transform: scale(1);
   }
