@@ -10,9 +10,36 @@
     <div class="title">
       <h2>{{ rtcData.callerId }}</h2>
     </div>
+    <div class="video-streams">
+      <video
+        autoplay
+        :class="{ hidden: !rtcData.myVideoStream }"
+        ref="myVideoRef"
+      ></video>
+      <video
+        autoplay
+        :class="{ hidden: !rtcData.otherVideoStream }"
+        ref="otherVideoRef"
+      ></video>
+      <video
+        autoplay
+        :class="{ hidden: !rtcData.myScreenStream }"
+        ref="myScreenRef"
+      ></video>
+      <video
+        autoplay
+        :class="{ hidden: !rtcData.otherScreenStream }"
+        ref="otherScreenRef"
+      ></video>
+    </div>
     <div class="buttons" v-if="!rtcData.isCallOutgoing">
       <button @click="rtcData.toggleMute">
         <ion-icon :name="rtcData.isMuted ? 'mic-off' : 'mic'"></ion-icon>
+      </button>
+      <button @click="rtcData.toggleVideoMute">
+        <ion-icon
+          :name="rtcData.isVideoMuted ? 'videocam-off' : 'videocam'"
+        ></ion-icon>
       </button>
     </div>
     <div class="buttons" v-else>
@@ -36,6 +63,10 @@ import { watch, ref, onMounted } from "vue";
 
 const rtcData = useNewRtcDataStore();
 const dragging = ref(false);
+const myVideoRef = ref(null);
+const otherVideoRef = ref(null);
+const myScreenRef = ref(null);
+const otherScreenRef = ref(null);
 
 const pos = ref({
   bottom: 10,
@@ -62,6 +93,19 @@ const position = computed(() => {
     bottom: `${pos.value.bottom}px`,
     right: `${pos.value.right}px`,
   };
+});
+
+watch(rtcData, () => {
+  if (rtcData.otherVideoStream) {
+    console.log("adding vidoe ref", rtcData.otherVideoStream);
+    otherVideoRef.value.srcObject = rtcData.otherVideoStream;
+  } else if (rtcData.myVideoStream) {
+    myVideoRef.value.srcObject = rtcData.myVideoStream;
+  } else if (rtcData.myScreenStream) {
+    myScreenRef.value.srcObject = rtcData.myScreenStream;
+  } else if (rtcData.otherScreenStream) {
+    otherScreenRef.value.srcObject = rtcData.otherScreenStream;
+  }
 });
 </script>
 
@@ -127,6 +171,18 @@ const position = computed(() => {
 
     ion-icon {
       transform: rotateZ(135deg);
+    }
+  }
+  .video-streams {
+    display: flex;
+    flex-wrap: wrap;
+
+    video {
+      width: 150px;
+    }
+
+    .hidden {
+      display: none;
     }
   }
 }

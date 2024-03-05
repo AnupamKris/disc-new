@@ -518,23 +518,24 @@ watch(rtcData, (newVal) => {
   }
 
   .inputs {
-    height: 40px;
+    height: 50px;
     width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
     position: relative;
-
-    margin-bottom: 10px;
+    border-top: 1px solid #3b4048;
+    background: #282c34;
+    // margin-bottom: 10px;
 
     input {
-      height: 100%;
-      width: calc(100% - 60px);
+      height: calc(100% - 10px);
+      width: calc(100% - 150px);
       padding: 0 50px;
       border: none;
       outline: none;
-      border-radius: 25px;
-      background: #282c34;
+      border-radius: 5px;
+      background: #21252b;
       color: #abb2bf;
     }
 
@@ -544,7 +545,7 @@ watch(rtcData, (newVal) => {
       height: 30px;
       border: none;
       outline: none;
-      background: #373d47;
+      background: #3b4048;
       color: #abb2bf;
       cursor: pointer;
       border-radius: 25px;

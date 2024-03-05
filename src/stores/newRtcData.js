@@ -16,6 +16,9 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
   let incomingCall = null;
   let outgoingCall = null;
 
+  let audioDevices = [];
+  let videoDevices = [];
+
   const callerId = ref("");
   const connectionId = ref("");
 
@@ -28,11 +31,13 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
   const transferProgress = ref(0);
   const transferFileName = ref("");
   const otherAudioStream = ref(null);
+  const otherVideoStream = ref(null);
+  const otherScreenStream = ref(null);
 
   const isConnected = ref(false);
   const isCallIncoming = ref(false);
   const isMuted = ref(false);
-  const isVideoMuted = ref(false);
+  const isVideoMuted = ref(true);
   const isScreenSharing = ref(false);
   const isCallOutgoing = ref(false);
   const isCallInProgress = ref(false);
@@ -65,11 +70,35 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     sendChatNotification(username);
   };
 
+  const setupDevicesList = async () => {
+    let devices = await navigator.mediaDevices.enumerateDevices();
+    // get devices with unique groupId
+
+    console.log(devices, "devices");
+    devices.forEach((device) => {
+      if (device.kind == "audioinput") {
+        audioDevices.push(device);
+      } else if (device.kind == "videoinput") {
+        videoDevices.push(device);
+      }
+    });
+
+    audioDevices = audioDevices.filter(
+      (v, i, a) => a.findIndex((t) => t.groupId === v.groupId) === i
+    );
+
+    videoDevices = videoDevices.filter(
+      (v, i, a) => a.findIndex((t) => t.groupId === v.groupId) === i
+    );
+  };
+
   const createPeerConnection = (id) => {
     console.log("Creating peer connection", id);
     artico = new Artico({
       id: id,
     });
+
+    setupDevicesList();
 
     artico.on("call", (call) => {
       let { metadata } = call;
@@ -176,9 +205,10 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
         callerId.value = "";
       });
 
-      call.on("stream", (stream) => {
-        console.log("Stream received: ", stream);
-        otherAudioStream.value = stream;
+      call.on("stream", (stream, metadata) => {
+        console.log("Stream received: ", stream, "metadata", metadata);
+        if (metadata.id == "audio") otherAudioStream.value = stream;
+        else if (metadata.id == "video") otherVideoStream.value = stream;
       });
     });
 
@@ -275,6 +305,29 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     } else {
       ongoingCall.addStream(myAudioStream.value, {
         id: "audio",
+      });
+    }
+  };
+
+  const toggleVideoMute = async () => {
+    isVideoMuted.value = !isVideoMuted.value;
+    let devs = await navigator.mediaDevices.enumerateDevices();
+    console.log(devs, "---");
+    if (!myVideoStream.value && !isVideoMuted.value) {
+      console.log("Getting video stream and adding");
+      myVideoStream.value = await navigator.mediaDevices.getUserMedia({
+        video: true,
+      });
+      ongoingCall.addStream(myVideoStream.value, {
+        id: "video",
+      });
+    } else if (myVideoStream.value && isVideoMuted.value) {
+      console.log("Removing video stream");
+      ongoingCall.removeStream(myVideoStream.value);
+    } else if (myVideoStream.value && !isVideoMuted.value) {
+      console.log("Adding video stream");
+      ongoingCall.addStream(myVideoStream.value, {
+        id: "video",
       });
     }
   };
@@ -406,11 +459,15 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     myVideoStream,
     myScreenStream,
     otherAudioStream,
+    otherVideoStream,
+    otherScreenStream,
     incomingCall,
     friendsObjects,
     notficationChats,
     transferProgress,
     transferFileName,
+    audioDevices,
+    videoDevices,
 
     isCallIncoming,
     isMuted,
@@ -425,6 +482,7 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     callPeer,
     answerCall,
     toggleMute,
+    toggleVideoMute,
     rejectCall,
     sendChatNotification,
     sendFile,
