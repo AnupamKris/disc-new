@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@meersagor/wavesurfer-vue": "^0.0.4",
     "@rtco/client": "^0.2.4",
     "@tauri-apps/api": "^1.5.3",
     "axios": "^1.6.7",
@@ -22,7 +23,8 @@
     "vue": "^3.4.15",
     "vue-router": "^4.2.5",
     "vue3-circle-progress": "^1.0.7",
-    "vuefire": "^3.1.23"
+    "vuefire": "^3.1.23",
+    "wavesurfer.js": "^7.7.3"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.5.10",
