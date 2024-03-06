@@ -9,70 +9,38 @@
       </div>
     </div>
     <div class="chats" v-if="chats" ref="chatsRef">
-      <div
-        v-for="(chat, index) in chats.messages"
-        :key="chat.timestamp"
-        class="chat"
-        :class="
-          ({
-            same: index != 0 && chats.messages[index - 1].sender == chat.sender,
-          },
-          chat.type)
-        "
-      >
-        <span
-          :class="{
-            visible:
-              index == 0 || chats.messages[index - 1].sender != chat.sender,
-          }"
-          >{{ chat.sender[0].toUpperCase() }}</span
-        >
+      <div v-for="(chat, index) in chats.messages" :key="chat.timestamp" class="chat" :class="({
+        same: index != 0 && chats.messages[index - 1].sender == chat.sender,
+      },
+        chat.type)
+        ">
+        <span :class="{
+        visible:
+          index == 0 || chats.messages[index - 1].sender != chat.sender,
+      }">{{ chat.sender[0].toUpperCase() }}</span>
         <div class="content">
-          <div
-            class="sender"
-            :class="{ self: chat.sender == currentUser.displayName }"
-            v-if="index == 0 || chats.messages[index - 1].sender != chat.sender"
-          >
+          <div class="sender" :class="{ self: chat.sender == currentUser.displayName }"
+            v-if="index == 0 || chats.messages[index - 1].sender != chat.sender">
             <h3>{{ chat.sender }}</h3>
             <p>{{ convertTimestampToDate(chat.timestamp) }}</p>
           </div>
-          <p
-            class="message image"
-            v-if="
-              ['png', 'jpg', 'jpeg'].includes(chat.senderPath?.split('.').pop())
-            "
-          >
+          <p class="message image" v-if="['png', 'jpg', 'jpeg'].includes(chat.senderPath?.split('.').pop())
+        ">
             <!-- <img :src="imageUrls[chat.message]" alt="" /> -->
             <ImageViewer :imageUrl="imageUrls[chat.message]" />
           </p>
-          <p
-            class="message image"
-            v-else-if="['mp4'].includes(chat.senderPath?.split('.').pop())"
-          >
-            <VideoPlayer
-              :videoUrl="imageUrls[chat.message]"
-              :filename="chat.message"
-            />
+          <p class="message image" v-else-if="['mp4'].includes(chat.senderPath?.split('.').pop())">
+            <VideoPlayer :videoUrl="imageUrls[chat.message]" :filename="chat.message" />
           </p>
-          <p
-            class="message audio"
-            v-else-if="
-              ['mp3', 'wav'].includes(chat.senderPath?.split('.').pop())
-            "
-          >
-            <AudioPlayer
-              :audioUrl="imageUrls[chat.message]"
-              :filename="chat.message"
-            />
+          <p class="message audio" v-else-if="['mp3', 'wav'].includes(chat.senderPath?.split('.').pop())
+        ">
+            <AudioPlayer :audioUrl="imageUrls[chat.message]" :filename="chat.message" />
             <!-- <AudioWave :audioUrl="imageUrls[chat.message]" /> -->
             <!-- <audio :src="imageUrls[chat.message]" alt="" controls /> -->
           </p>
           <p class="message" v-else>
-            <ion-icon
-              v-if="chat.type == 'file'"
-              name="document-attach"
-            ></ion-icon>
-            {{ chat.message }}
+            <ion-icon v-if="chat.type == 'file'" name="document-attach"></ion-icon>
+          <pre>{{ chat.message }}</pre>
           </p>
         </div>
       </div>
@@ -81,7 +49,10 @@
       <button @click="attachFile" class="attach">
         <ion-icon name="attach-outline"></ion-icon>
       </button>
-      <input type="text" v-model="chatInput" @keyup.enter="sendChat" />
+
+      <textarea type="text" v-model="chatInput" @keyup.enter.exact="sendChat">
+        </textarea>
+
       <button @click="sendChat" class="send">
         <ion-icon name="send"></ion-icon>
       </button>
@@ -364,23 +335,13 @@ watch(rtcData, (newVal) => {
     flex-direction: column;
     padding-bottom: 20px;
 
-    &::-webkit-scrollbar {
-      width: 10px;
-    }
 
-    &::-webkit-scrollbar-thumb {
-      background: #3b4048;
-      border-radius: 10px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: #282c34;
-    }
 
     .chat {
       height: auto;
       max-width: calc(100% - 20px);
       width: auto;
+      // overflow-x: hidden;
 
       padding: 10px 5px 0 5px;
 
@@ -415,6 +376,7 @@ watch(rtcData, (newVal) => {
 
       .content {
         margin-left: 10px;
+        overflow-x: auto;
 
         p {
           word-break: break-all;
@@ -527,15 +489,23 @@ watch(rtcData, (newVal) => {
 
     margin-bottom: 10px;
 
-    input {
-      height: 100%;
+    input,
+    textarea {
+      height: 40px;
       width: calc(100% - 60px);
-      padding: 0 50px;
+      padding: 1px 50px;
+      resize: vertical;
       border: none;
       outline: none;
       border-radius: 25px;
       background: #282c34;
       color: #abb2bf;
+      position: absolute;
+      padding-top: 10px;
+
+      left: 50%;
+      bottom: 0;
+      transform: translate(-50%, 0)
     }
 
     button {
@@ -548,6 +518,8 @@ watch(rtcData, (newVal) => {
       color: #abb2bf;
       cursor: pointer;
       border-radius: 25px;
+
+      z-index: 1;
 
       display: flex;
       justify-content: center;
