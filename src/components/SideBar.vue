@@ -68,6 +68,9 @@
     </div>
 
     <div class="ctl-buttons">
+      <button @click="toggleSettings">
+        <ion-icon name="settings-outline"></ion-icon>
+      </button>
       <button @click="addFriend">
         <ion-icon name="person-add-outline"></ion-icon>
       </button>
@@ -86,8 +89,10 @@
     :progress="rtcData.transferProgress"
     :filename="rtcData.transferFileName"
   />
+  <CallSettings v-if="showSettings" />
   <audio :src="ringing" autoplay loop v-if="rtcData.isCallIncoming"></audio>
   <audio :src="waiting" autoplay loop v-if="rtcData.isCallOutgoing"></audio>
+  <audio :src="popsound" ref="notifRef"></audio>
 
   <CallPopUp v-if="rtcData.isCallOutgoing || rtcData.isCallInProgress" />
   <audio autoplay ref="audioRef"></audio>
@@ -102,6 +107,7 @@ import {
 } from "vuefire";
 import ringing from "@/assets/ringing.wav";
 import waiting from "@/assets/waiting.wav";
+import popsound from "@/assets/pop.mp3";
 import {
   addDoc,
   collection,
@@ -123,12 +129,14 @@ import CallPopUp from "./CallPopUp.vue";
 import AlertMessage from "./AlertMessage.vue";
 import AddFriend from "./AddFriend.vue";
 
+const notifRef = ref(null);
 const addFriendVisible = ref(false);
 const alertData = ref({
   type: "",
   message: "",
 });
 const showAlert = ref(false);
+const showSettings = ref(false);
 const db = useFirestore();
 const currentUser = await getCurrentUser();
 const userDoc = useDocument(doc(db, "users", currentUser.uid));
@@ -138,6 +146,7 @@ const router = useRouter();
 const rtcData = useNewRtcDataStore();
 const emit = defineEmits(["call", "selectFriend"]);
 const audioRef = ref(null);
+const lastNotif = ref(0);
 
 const addFriend = () => {
   addFriendVisible.value = !addFriendVisible.value;
@@ -247,16 +256,26 @@ const removeNotification = (uname) => {
   );
 };
 
+const toggleSettings = () => {
+  showSettings.value = !showSettings.value;
+};
+
 onMounted(() => {
   console.log("sidebar mounted", currentUser.displayName);
   rtcData.createPeerConnection(currentUser.displayName);
   let notifChats = JSON.parse(localStorage.getItem("notficationChats"));
   if (notifChats) {
     rtcData.notficationChats = notifChats;
+    lastNotif.value = notifChats.length;
   }
 });
 
 watch(rtcData, (newVal) => {
+  if (lastNotif.value < newVal.notficationChats.length) {
+    notifRef.value.src = popsound;
+    notifRef.value.play();
+    lastNotif.value = newVal.notficationChats.length;
+  }
   if (newVal.otherAudioStream && newVal.isCallInProgress) {
     console.log("new audio stream", newVal.otherAudioStream);
     audioRef.value.srcObject = newVal.otherAudioStream;
