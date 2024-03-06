@@ -1,19 +1,8 @@
 <template>
-  <div
-    class="fileprogress"
-    :class="{ smallbar: hideText }"
-    @mouseover="hideText = false"
-    @mouseout="hideText = true"
-  >
+  <div class="fileprogress" :class="{ smallbar: hideText }" @mouseover="hideText = false" @mouseout="hideText = true">
     <div class="progress">
-      <circle-progress
-        class="progress"
-        :percent="progress"
-        :size="50"
-        :border-width="5"
-        :border-bg-width="5"
-        empty-color="#373d47"
-      />
+      <circle-progress class="progress" :percent="progress" :size="50" :border-width="5" :border-bg-width="5"
+        empty-color="#373d47" />
       <p>{{ parseInt(progress) }}</p>
     </div>
     <div class="fileprogress__info" :class="{ hide: hideText }">
@@ -66,6 +55,7 @@ onMounted(() => {
 
   .progress {
     position: relative;
+
     p {
       position: absolute;
       top: 50%;
@@ -114,8 +104,8 @@ onMounted(() => {
     height: 60px;
     border-radius: 30px;
     background: #282c34;
-    .hide {
-    }
+
+    .hide {}
   }
 }
 

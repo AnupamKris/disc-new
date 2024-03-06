@@ -1,5 +1,5 @@
 <template>
-  <div class="chat">
+  <div class="chat" @dragover="checkDrag">
     <div class="title">
       <h2>{{ friend.username }}</h2>
       <div class="buttons">
@@ -9,70 +9,45 @@
       </div>
     </div>
     <div class="chats" v-if="chats" ref="chatsRef">
-      <div
-        v-for="(chat, index) in chats.messages"
-        :key="chat.timestamp"
-        class="chat"
-        :class="
-          ({
-            same: index != 0 && chats.messages[index - 1].sender == chat.sender,
-          },
-          chat.type)
-        "
-      >
-        <span
-          :class="{
-            visible:
-              index == 0 || chats.messages[index - 1].sender != chat.sender,
-          }"
-          >{{ chat.sender[0].toUpperCase() }}</span
-        >
+      <div v-for="(chat, index) in chats.messages" :key="chat.timestamp" class="chat" :class="({
+    same: index != 0 && chats.messages[index - 1].sender == chat.sender,
+  },
+    chat.type)
+    ">
+        <span :class="{
+    visible:
+      index == 0 || chats.messages[index - 1].sender != chat.sender,
+  }">{{ chat.sender[0].toUpperCase() }}</span>
         <div class="content">
-          <div
-            class="sender"
-            :class="{ self: chat.sender == currentUser.displayName }"
-            v-if="index == 0 || chats.messages[index - 1].sender != chat.sender"
-          >
+          <div class="sender" :class="{ self: chat.sender == currentUser.displayName }"
+            v-if="index == 0 || chats.messages[index - 1].sender != chat.sender">
             <h3>{{ chat.sender }}</h3>
             <p>{{ convertTimestampToDate(chat.timestamp) }}</p>
           </div>
-          <p
-            class="message image"
-            v-if="
-              ['png', 'jpg', 'jpeg'].includes(chat.senderPath?.split('.').pop())
-            "
-          >
+          <p class="message image" v-if="['png', 'jpg', 'jpeg'].includes(chat.senderPath?.split('.').pop())
+    ">
             <!-- <img :src="imageUrls[chat.message]" alt="" /> -->
             <ImageViewer :imageUrl="imageUrls[chat.message]" />
           </p>
-          <p
-            class="message image"
-            v-else-if="['mp4'].includes(chat.senderPath?.split('.').pop())"
-          >
-            <VideoPlayer
-              :videoUrl="imageUrls[chat.message]"
-              :filename="chat.message"
-            />
+          <p class="message image" v-else-if="['mp4'].includes(chat.senderPath?.split('.').pop())">
+            <VideoPlayer :videoUrl="imageUrls[chat.message]" :filename="chat.message" />
           </p>
-          <p
-            class="message audio"
-            v-else-if="
-              ['mp3', 'wav'].includes(chat.senderPath?.split('.').pop())
-            "
-          >
-            <AudioPlayer
-              :audioUrl="imageUrls[chat.message]"
-              :filename="chat.message"
-            />
-            <!-- <AudioWave :audioUrl="imageUrls[chat.message]" /> -->
-            <!-- <audio :src="imageUrls[chat.message]" alt="" controls /> -->
+          <p class="message audio" v-else-if="['mp3', 'wav'].includes(chat.senderPath?.split('.').pop())
+    ">
+            <AudioPlayer :audioUrl="imageUrls[chat.message]" :filename="chat.message" />
+
           </p>
           <p class="message" v-else>
-            <ion-icon
-              v-if="chat.type == 'file'"
-              name="document-attach"
-            ></ion-icon>
-            {{ chat.message }}
+            <ion-icon v-if="chat.type == 'file'" name="document-attach"></ion-icon>
+            <!-- <pre>{{ formatMessage(chat.message) }}</pre> -->
+
+
+          <div v-for="part in formatMessage(chat.message)">
+            <!-- {{ part }} -->
+            <pre v-if="part.type == 'text'">{{ part.content.trim("\n") }}</pre>
+            <VCodeBlock v-else highlightjs :lang="part.language" theme="atom-one-dark" :code="part.content" />
+          </div>
+          <!-- <p v-if="part.type == 'text'">{{ part.content }}</p> -->
           </p>
         </div>
       </div>
@@ -81,7 +56,9 @@
       <button @click="attachFile" class="attach">
         <ion-icon name="attach-outline"></ion-icon>
       </button>
-      <input type="text" v-model="chatInput" @keyup.enter="sendChat" />
+
+      <textarea @paste="pasteContent" type="text" v-model="chatInput" @keyup.enter.exact="sendChat"></textarea>
+
       <button @click="sendChat" class="send">
         <ion-icon name="send"></ion-icon>
       </button>
@@ -102,6 +79,7 @@ import {
 import { BaseDirectory, exists, readBinaryFile } from "@tauri-apps/api/fs";
 import { open } from "@tauri-apps/api/dialog";
 import VideoPlayer from "./VideoPlayer.vue";
+import { listen } from "@tauri-apps/api/event";
 
 const imageUrls = ref({});
 const db = useFirestore();
@@ -110,17 +88,42 @@ const transferFileName = ref("");
 const transferStarted = ref(false);
 const chatsRef = ref(null);
 
+
 const props = defineProps({
   friend: Object,
   calling: Boolean,
 });
 
-const emit = defineEmits(["rejectCall", "acceptCall"]);
+
+const emit = defineEmits(["rejectCall", "acceptCall",]);
 
 const callFriend = async () => {
   let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   rtcData.callPeer(props.friend.username, stream);
 };
+
+const formatMessage = (msg) => {
+  // put everythin in a pre tag and convert every content enclosed in ``` to a code block
+  let parts = msg.split("```");
+
+  return (parts.map((part, index) => {
+    if (index % 2 === 0) {
+      // This is a normal text part
+      // console.log(part);
+      return { type: "text", content: part }
+    } else {
+      // This is a code part
+      // console.log("code", part);
+      let language = part.split("\n")[0];
+      if (language === "") {
+        language = "javascript"
+      }
+      let content = part.split("\n").slice(1).join("\n");
+      return { type: "code", content: content, language: language }
+    }
+  }))
+
+}
 
 const getImageIntoDataUrl = async (file, downloads) => {
   let data;
@@ -185,7 +188,12 @@ const sendChat = async () => {
   });
 
   rtcData.sendChatNotification(props.friend.username);
+  chatsRef.value.scrollTop = chatsRef.value.scrollHeight;
 };
+
+const checkDrag = (e) => {
+  console.log(e);
+}
 
 const attachFile = async () => {
   let path = await open({ directory: false, multiple: false });
@@ -195,6 +203,21 @@ const attachFile = async () => {
   // let file = await readBinaryFile(path);
   // console.log(filename);
   rtcData.sendFile(props.friend.username, props.friend.chatId, path, filename);
+};
+
+const pasteContent = (e) => {
+  console.log(e);
+  let items = e.clipboardData.items;
+  // console.log(items[0].kind);
+  // console.log(items[0].getAsFile());
+
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].kind === "file") {
+      let file = items[i].getAsFile();
+      console.log(file);
+      rtcData.sendFile(props.friend.username, props.friend.chatId, file, file.name);
+    }
+  }
 };
 
 watch(chats, (newVal) => {
@@ -230,6 +253,28 @@ watch(rtcData, (newVal) => {
     chatsRef.value.scrollTop = chatsRef.value.scrollHeight;
   }
 });
+
+onMounted(() => {
+
+  listen('tauri://file-drop', event => {
+    console.log("file dropped", event.payload[0], friend.username);
+    // let filePath = event.payload[0]
+    // let peerId = friend.username;
+    // let chatId = friend.chatId;
+    // let filename = filePath.split("\\").pop();
+    // console.log("Sending File", filename);
+    // rtcData.sendFile(peerId, chatId, filePath, filename);
+  })
+
+  listen('tauri://file-drop-hover', event => {
+    console.log("file hover", event.payload);
+  })
+  listen('tauri://file-drop-cancelled', event => {
+    console.log("file cancelled", event.payload);
+  })
+
+
+})
 </script>
 
 <style lang="scss" scoped>
@@ -364,23 +409,13 @@ watch(rtcData, (newVal) => {
     flex-direction: column;
     padding-bottom: 20px;
 
-    &::-webkit-scrollbar {
-      width: 10px;
-    }
 
-    &::-webkit-scrollbar-thumb {
-      background: #3b4048;
-      border-radius: 10px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: #282c34;
-    }
 
     .chat {
       height: auto;
       max-width: calc(100% - 20px);
       width: auto;
+      // overflow-x: hidden;
 
       padding: 10px 5px 0 5px;
 
@@ -415,9 +450,17 @@ watch(rtcData, (newVal) => {
 
       .content {
         margin-left: 10px;
+        overflow-x: auto;
 
         p {
           word-break: break-all;
+          height: auto;
+
+          .wrapper {
+            padding: 0;
+            margin: 0;
+            height: auto;
+          }
         }
       }
 
@@ -528,15 +571,23 @@ watch(rtcData, (newVal) => {
     background: #282c34;
     // margin-bottom: 10px;
 
-    input {
-      height: calc(100% - 10px);
-      width: calc(100% - 150px);
-      padding: 0 50px;
+    input,
+    textarea {
+      height: 40px;
+      width: calc(100% - 60px);
+      padding: 1px 50px;
+      resize: vertical;
       border: none;
       outline: none;
       border-radius: 5px;
       background: #21252b;
       color: #abb2bf;
+      position: absolute;
+      padding-top: 10px;
+
+      left: 50%;
+      bottom: 0;
+      transform: translate(-50%, 0)
     }
 
     button {
@@ -549,6 +600,8 @@ watch(rtcData, (newVal) => {
       color: #abb2bf;
       cursor: pointer;
       border-radius: 25px;
+
+      z-index: 1;
 
       display: flex;
       justify-content: center;
