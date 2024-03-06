@@ -1,5 +1,5 @@
 <template>
-  <div class="chat">
+  <div class="chat" @dragover="checkDrag">
     <div class="title">
       <h2>{{ friend.username }}</h2>
       <div class="buttons">
@@ -10,14 +10,14 @@
     </div>
     <div class="chats" v-if="chats" ref="chatsRef">
       <div v-for="(chat, index) in chats.messages" :key="chat.timestamp" class="chat" :class="({
-        same: index != 0 && chats.messages[index - 1].sender == chat.sender,
-      },
-        chat.type)
-        ">
+    same: index != 0 && chats.messages[index - 1].sender == chat.sender,
+  },
+    chat.type)
+    ">
         <span :class="{
-        visible:
-          index == 0 || chats.messages[index - 1].sender != chat.sender,
-      }">{{ chat.sender[0].toUpperCase() }}</span>
+    visible:
+      index == 0 || chats.messages[index - 1].sender != chat.sender,
+  }">{{ chat.sender[0].toUpperCase() }}</span>
         <div class="content">
           <div class="sender" :class="{ self: chat.sender == currentUser.displayName }"
             v-if="index == 0 || chats.messages[index - 1].sender != chat.sender">
@@ -25,7 +25,7 @@
             <p>{{ convertTimestampToDate(chat.timestamp) }}</p>
           </div>
           <p class="message image" v-if="['png', 'jpg', 'jpeg'].includes(chat.senderPath?.split('.').pop())
-        ">
+    ">
             <!-- <img :src="imageUrls[chat.message]" alt="" /> -->
             <ImageViewer :imageUrl="imageUrls[chat.message]" />
           </p>
@@ -33,7 +33,7 @@
             <VideoPlayer :videoUrl="imageUrls[chat.message]" :filename="chat.message" />
           </p>
           <p class="message audio" v-else-if="['mp3', 'wav'].includes(chat.senderPath?.split('.').pop())
-        ">
+    ">
             <AudioPlayer :audioUrl="imageUrls[chat.message]" :filename="chat.message" />
 
           </p>
@@ -57,7 +57,7 @@
         <ion-icon name="attach-outline"></ion-icon>
       </button>
 
-      <textarea type="text" v-model="chatInput" @keyup.enter.exact="sendChat"></textarea>
+      <textarea @paste="pasteContent" type="text" v-model="chatInput" @keyup.enter.exact="sendChat"></textarea>
 
       <button @click="sendChat" class="send">
         <ion-icon name="send"></ion-icon>
@@ -79,6 +79,7 @@ import {
 import { BaseDirectory, exists, readBinaryFile } from "@tauri-apps/api/fs";
 import { open } from "@tauri-apps/api/dialog";
 import VideoPlayer from "./VideoPlayer.vue";
+import { listen } from "@tauri-apps/api/event";
 
 const imageUrls = ref({});
 const db = useFirestore();
@@ -87,12 +88,14 @@ const transferFileName = ref("");
 const transferStarted = ref(false);
 const chatsRef = ref(null);
 
+
 const props = defineProps({
   friend: Object,
   calling: Boolean,
 });
 
-const emit = defineEmits(["rejectCall", "acceptCall"]);
+
+const emit = defineEmits(["rejectCall", "acceptCall",]);
 
 const callFriend = async () => {
   let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -188,6 +191,10 @@ const sendChat = async () => {
   chatsRef.value.scrollTop = chatsRef.value.scrollHeight;
 };
 
+const checkDrag = (e) => {
+  console.log(e);
+}
+
 const attachFile = async () => {
   let path = await open({ directory: false, multiple: false });
   if (!path) return;
@@ -196,6 +203,21 @@ const attachFile = async () => {
   // let file = await readBinaryFile(path);
   // console.log(filename);
   rtcData.sendFile(props.friend.username, props.friend.chatId, path, filename);
+};
+
+const pasteContent = (e) => {
+  console.log(e);
+  let items = e.clipboardData.items;
+  // console.log(items[0].kind);
+  // console.log(items[0].getAsFile());
+
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].kind === "file") {
+      let file = items[i].getAsFile();
+      console.log(file);
+      rtcData.sendFile(props.friend.username, props.friend.chatId, file, file.name);
+    }
+  }
 };
 
 watch(chats, (newVal) => {
@@ -231,6 +253,28 @@ watch(rtcData, (newVal) => {
     chatsRef.value.scrollTop = chatsRef.value.scrollHeight;
   }
 });
+
+onMounted(() => {
+
+  listen('tauri://file-drop', event => {
+    console.log("file dropped", event.payload[0], friend.username);
+    // let filePath = event.payload[0]
+    // let peerId = friend.username;
+    // let chatId = friend.chatId;
+    // let filename = filePath.split("\\").pop();
+    // console.log("Sending File", filename);
+    // rtcData.sendFile(peerId, chatId, filePath, filename);
+  })
+
+  listen('tauri://file-drop-hover', event => {
+    console.log("file hover", event.payload);
+  })
+  listen('tauri://file-drop-cancelled', event => {
+    console.log("file cancelled", event.payload);
+  })
+
+
+})
 </script>
 
 <style lang="scss" scoped>

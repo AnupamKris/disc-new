@@ -334,6 +334,7 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
       chatId: chatId,
       senderPath: filepath,
     });
+
     // var binaryString = String.fromCharCode.apply(null, file);
 
     // read the uint8 array in chunks
@@ -396,6 +397,23 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     // let file = await readBinaryFile(file);
     // console.log(file);
   };
+
+  const sendChunks = (peerId, chatId, chunks, filename) => {
+    let call = artico.call(peerId, {
+      username: connectionId.value,
+      type: "file",
+      filename: filename,
+      length: chunks.length,
+      chatId: chatId,
+    });
+
+    call.on("open", () => {
+      console.log("Call opened");
+      chunks.forEach((chunk) => {
+        call.send(chunk);
+      });
+    });
+  }
 
   return {
     ongoingCall,
