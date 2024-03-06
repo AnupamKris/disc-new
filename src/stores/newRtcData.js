@@ -203,6 +203,11 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
         isCallIncoming.value = false;
         isCallInProgress.value = false;
         callerId.value = "";
+        myAudioStream.value = null;
+        otherAudioStream.value = null;
+        myVideoStream.value = null;
+        otherVideoStream.value = null;
+        
       });
 
       call.on("stream", (stream, metadata) => {
@@ -251,9 +256,11 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
         id: "audio",
       });
 
-      call.on("stream", (stream) => {
-        console.log("Stream received: ", stream);
-        otherAudioStream.value = stream;
+      call.on("stream", (stream, metadata) => {
+        // console.log("Stream received: ", stream);
+        console.log("Some stream recieved", metadata);
+        if (metadata.id == "audio") otherAudioStream.value = stream;
+        else if (metadata.id == "video") otherVideoStream.value = stream;
       });
     });
 
@@ -261,6 +268,10 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
       console.log("Call closed");
       isCallInProgress.value = false;
       isCallOutgoing.value = false;
+      myAudioStream.value = null;
+        otherAudioStream.value = null;
+        myVideoStream.value = null;
+        otherVideoStream.value = null;
     });
   };
 
@@ -281,17 +292,26 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
       isCallInProgress.value = true;
       incomingCall = null;
 
-      ongoingCall.on("stream", (stream) => {
-        console.log("Stream received: ", stream);
-        otherAudioStream.value = stream;
+      ongoingCall.on("stream", (stream, metadata) => {
+        console.log("Some stream recived", metadata);
+        if (metadata.id == "audio") otherAudioStream.value = stream;
+        else if (metadata.id == "video") otherVideoStream.value = stream;
+        // console.log("Stream received: ", stream);
+        // otherAudioStream.value = stream;
       });
+
+      
 
       ongoingCall.on("close", () => {
         console.log("Call closed");
         isCallInProgress.value = false;
         isCallIncoming.value = false;
         callerId.value = "";
+        
         myAudioStream.value = null;
+        otherAudioStream.value = null;
+        myVideoStream.value = null;
+        otherVideoStream.value = null;
       });
     });
   };
@@ -321,6 +341,7 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
       ongoingCall.addStream(myVideoStream.value, {
         id: "video",
       });
+      
     } else if (myVideoStream.value && isVideoMuted.value) {
       console.log("Removing video stream");
       ongoingCall.removeStream(myVideoStream.value);
