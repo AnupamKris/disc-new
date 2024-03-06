@@ -35,12 +35,19 @@
           <p class="message audio" v-else-if="['mp3', 'wav'].includes(chat.senderPath?.split('.').pop())
         ">
             <AudioPlayer :audioUrl="imageUrls[chat.message]" :filename="chat.message" />
-            <!-- <AudioWave :audioUrl="imageUrls[chat.message]" /> -->
-            <!-- <audio :src="imageUrls[chat.message]" alt="" controls /> -->
+
           </p>
           <p class="message" v-else>
             <ion-icon v-if="chat.type == 'file'" name="document-attach"></ion-icon>
-          <pre>{{ chat.message }}</pre>
+            <!-- <pre>{{ formatMessage(chat.message) }}</pre> -->
+
+
+          <div v-for="part in formatMessage(chat.message)">
+            <!-- {{ part }} -->
+            <pre v-if="part.type == 'text'">{{ part.content.trim("\n") }}</pre>
+            <VCodeBlock v-else highlightjs :lang="part.language" theme="atom-one-dark" :code="part.content" />
+          </div>
+          <!-- <p v-if="part.type == 'text'">{{ part.content }}</p> -->
           </p>
         </div>
       </div>
@@ -50,8 +57,7 @@
         <ion-icon name="attach-outline"></ion-icon>
       </button>
 
-      <textarea type="text" v-model="chatInput" @keyup.enter.exact="sendChat">
-        </textarea>
+      <textarea type="text" v-model="chatInput" @keyup.enter.exact="sendChat"></textarea>
 
       <button @click="sendChat" class="send">
         <ion-icon name="send"></ion-icon>
@@ -92,6 +98,29 @@ const callFriend = async () => {
   let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   rtcData.callPeer(props.friend.username, stream);
 };
+
+const formatMessage = (msg) => {
+  // put everythin in a pre tag and convert every content enclosed in ``` to a code block
+  let parts = msg.split("```");
+
+  return (parts.map((part, index) => {
+    if (index % 2 === 0) {
+      // This is a normal text part
+      // console.log(part);
+      return { type: "text", content: part }
+    } else {
+      // This is a code part
+      // console.log("code", part);
+      let language = part.split("\n")[0];
+      if (language === "") {
+        language = "javascript"
+      }
+      let content = part.split("\n").slice(1).join("\n");
+      return { type: "code", content: content, language: language }
+    }
+  }))
+
+}
 
 const getImageIntoDataUrl = async (file, downloads) => {
   let data;
@@ -156,6 +185,7 @@ const sendChat = async () => {
   });
 
   rtcData.sendChatNotification(props.friend.username);
+  chatsRef.value.scrollTop = chatsRef.value.scrollHeight;
 };
 
 const attachFile = async () => {
@@ -380,6 +410,13 @@ watch(rtcData, (newVal) => {
 
         p {
           word-break: break-all;
+          height: auto;
+
+          .wrapper {
+            padding: 0;
+            margin: 0;
+            height: auto;
+          }
         }
       }
 
