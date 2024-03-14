@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "Super Chat",
-    "version": "0.5.11"
+    "version": "0.6.1"
   },
   "tauri": {
     "allowlist": {
@@ -34,14 +34,16 @@
           "**"
         ]
       },
-     
       "dialog": {
         "all": false,
         "ask": false,
         "confirm": false,
-        "message": false,
+        "message": true,
         "open": true,
         "save": false
+      },
+      "path": {
+        "all": true
       }
     },
     "bundle": {

@@ -37,33 +37,63 @@
       </div>
     </div>
     <div class="friends">
-      <h3>Friends</h3>
-      <div
-        class="friend"
-        v-for="friend in userDoc.friends"
-        :key="friend"
-        @click="selectFriend(friend)"
-      >
-        <p class="name">{{ friend.username }}</p>
-        <p
-          class="unseen"
-          v-if="
-            rtcData.notficationChats.filter((uname) => uname == friend.username)
-              .length
-          "
+      <div class="group">
+        <h3
+          :class="{ active: currentSection == 'friends' }"
+          @click="setSection('friends')"
         >
-          {{
-            rtcData.notficationChats.filter((uname) => uname == friend.username)
-              .length
-          }}
-        </p>
-        <!-- <p
+          <ion-icon name="people-outline"></ion-icon>
+        </h3>
+        <h3
+          :class="{ active: currentSection == 'groups' }"
+          @click="setSection('groups')"
+        >
+          <ion-icon name="chatbubbles-outline"></ion-icon>
+        </h3>
+        <h3 @click="toggleCreateGroup">
+          <ion-icon name="add-circle-outline"></ion-icon>
+        </h3>
+      </div>
+      <div class="items" v-if="currentSection == 'friends'">
+        <div
+          class="friend"
+          v-for="friend in userDoc.friends"
+          :key="friend"
+          @click="selectFriend(friend)"
+        >
+          <p class="name">{{ friend.username }}</p>
+          <p
+            class="unseen"
+            v-if="
+              rtcData.notficationChats.filter(
+                (uname) => uname == friend.username
+              ).length
+            "
+          >
+            {{
+              rtcData.notficationChats.filter(
+                (uname) => uname == friend.username
+              ).length
+            }}
+          </p>
+          <!-- <p
           class="stat online"
           v-if="rtcData.friendsObjects.includes(friend.username)"
         >
           online
         </p>
         <p class="stat" v-else>offline</p> -->
+        </div>
+      </div>
+      <div class="items" v-else>
+        <div
+          class="friend"
+          v-for="group in userDoc.groups"
+          :key="group"
+          @click="selectGroup(group)"
+        >
+          <p>{{ group.name }}</p>
+        </div>
       </div>
     </div>
 
@@ -89,12 +119,13 @@
     :progress="rtcData.transferProgress"
     :filename="rtcData.transferFileName"
   />
-  <CallSettings v-if="showSettings" />
+  <CallSettings v-if="showSettings" @close="toggleSettings" />
+  <CallPopUp v-if="rtcData.isCallOutgoing || rtcData.isCallInProgress" />
+  <CreateGroup v-if="showCreateGroup" @close="toggleCreateGroup" />
+
   <audio :src="ringing" autoplay loop v-if="rtcData.isCallIncoming"></audio>
   <audio :src="waiting" autoplay loop v-if="rtcData.isCallOutgoing"></audio>
   <audio :src="popsound" ref="notifRef"></audio>
-
-  <CallPopUp v-if="rtcData.isCallOutgoing || rtcData.isCallInProgress" />
   <audio autoplay ref="audioRef"></audio>
 </template>
 
@@ -144,9 +175,11 @@ const statusDoc = useDocument(doc(db, "status", "status_doc"));
 const auth = useFirebaseAuth();
 const router = useRouter();
 const rtcData = useNewRtcDataStore();
-const emit = defineEmits(["call", "selectFriend"]);
+const emit = defineEmits(["call", "selectFriend", "selectGroup"]);
 const audioRef = ref(null);
 const lastNotif = ref(0);
+const currentSection = ref("friends");
+const showCreateGroup = ref(false);
 
 const addFriend = () => {
   addFriendVisible.value = !addFriendVisible.value;
@@ -156,6 +189,12 @@ const selectFriend = (friend) => {
   console.log(friend);
   emit("selectFriend", friend);
   removeNotification(friend.username);
+};
+
+const selectGroup = (group) => {
+  console.log(group);
+  emit("selectGroup", group);
+  removeNotification(group.name);
 };
 
 const alertReq = (type, message) => {
@@ -256,8 +295,23 @@ const removeNotification = (uname) => {
   );
 };
 
+const setSection = (sect) => {
+  currentSection.value = sect;
+};
+
+// const createGroup = () => {
+//   console.log("create group");
+
+//   toggleCreateGroup
+//   // alertReq("msg", "Feature Coming Soon!");
+// };
+
 const toggleSettings = () => {
   showSettings.value = !showSettings.value;
+};
+
+const toggleCreateGroup = () => {
+  showCreateGroup.value = !showCreateGroup.value;
 };
 
 onMounted(() => {
@@ -354,8 +408,36 @@ watch(rtcData, (newVal) => {
   }
 
   .friends {
-    h3 {
-      margin-bottom: 5px;
+    .group {
+      display: flex;
+      // justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #373d47;
+      margin-bottom: 10px;
+
+      h3 {
+        // background: #373d47;
+        padding: 10px;
+        // border-radius: 5px;
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        border-right: 1px solid #373d47;
+
+        &:hover {
+          background: #373d47;
+        }
+      }
+
+      .active {
+        color: #4d78cc;
+      }
+
+      ion-icon {
+        font-size: 24px;
+      }
     }
 
     .friend {

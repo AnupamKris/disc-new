@@ -80,6 +80,7 @@ import { BaseDirectory, exists, readBinaryFile } from "@tauri-apps/api/fs";
 import { open } from "@tauri-apps/api/dialog";
 import VideoPlayer from "./VideoPlayer.vue";
 import { listen } from "@tauri-apps/api/event";
+import { sep } from "@tauri-apps/api/path";
 
 const imageUrls = ref({});
 const db = useFirestore();
@@ -174,21 +175,23 @@ const rejectCall = () => {
 
 const chatInput = ref("");
 const sendChat = async () => {
-  if (chatInput.value === "") return;
-  let chatRef = doc(db, "chats", props.friend.chatId);
-  console.log(props.friend.chatId, "chatRef");
-  let chatData = {
-    message: chatInput.value,
-    sender: currentUser.displayName,
-    timestamp: new Date(),
-  };
-  chatInput.value = "";
-  await updateDoc(chatRef, {
-    messages: arrayUnion(chatData),
-  });
+  if (!chatInput.value === "") {
+    console.log("-", chatInput.value);
+    let chatRef = doc(db, "chats", props.friend.chatId);
+    console.log(props.friend.chatId, "chatRef");
+    let chatData = {
+      message: chatInput.value,
+      sender: currentUser.displayName,
+      timestamp: new Date(),
+    };
+    chatInput.value = "";
+    await updateDoc(chatRef, {
+      messages: arrayUnion(chatData),
+    });
 
-  rtcData.sendChatNotification(props.friend.username);
-  chatsRef.value.scrollTop = chatsRef.value.scrollHeight;
+    rtcData.sendChatNotification(props.friend.username);
+    chatsRef.value.scrollTop = chatsRef.value.scrollHeight;
+  }
 };
 
 const checkDrag = (e) => {
@@ -580,10 +583,10 @@ onMounted(() => {
       border: none;
       outline: none;
       border-radius: 5px;
-      background: #21252b;
+      background: transparent;
       color: #abb2bf;
       position: absolute;
-      padding-top: 10px;
+      padding-top: 5px;  
 
       left: 50%;
       bottom: 0;

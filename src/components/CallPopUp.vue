@@ -1,21 +1,45 @@
 <template>
-  <div class="popup" @mousedown="startDrag" @mousemove="drag" @mouseleave="stopDrag" @mouseup="stopDrag"
-    :style="position">
+  <div
+    class="popup"
+    @mousedown="startDrag"
+    @mousemove="drag"
+    @mouseleave="stopDrag"
+    @mouseup="stopDrag"
+    :style="position"
+  >
     <div class="title">
       <h2>{{ rtcData.callerId }}</h2>
     </div>
     <div class="video-streams">
-      <video autoplay :class="{ hidden: !rtcData.myVideoStream && !rtcData.isVideoMuted }" ref="myVideoRef"></video>
-      <video autoplay :class="{ hidden: !rtcData.otherVideoStream }" ref="otherVideoRef"></video>
-      <video autoplay :class="{ hidden: !rtcData.myScreenStream }" ref="myScreenRef"></video>
-      <video autoplay :class="{ hidden: !rtcData.otherScreenStream }" ref="otherScreenRef"></video>
+      <video
+        autoplay
+        :class="{ hidden: rtcData.isVideoMuted }"
+        ref="myVideoRef"
+      ></video>
+      <video
+        autoplay
+        :class="{ hidden: !rtcData.otherVideoStream }"
+        ref="otherVideoRef"
+      ></video>
+      <video
+        autoplay
+        :class="{ hidden: !rtcData.myScreenStream }"
+        ref="myScreenRef"
+      ></video>
+      <video
+        autoplay
+        :class="{ hidden: !rtcData.otherScreenStream }"
+        ref="otherScreenRef"
+      ></video>
     </div>
     <div class="buttons" v-if="!rtcData.isCallOutgoing">
       <button @click="rtcData.toggleMute">
         <ion-icon :name="rtcData.isMuted ? 'mic-off' : 'mic'"></ion-icon>
       </button>
       <button @click="rtcData.toggleVideoMute">
-        <ion-icon :name="rtcData.isVideoMuted ? 'videocam-off' : 'videocam'"></ion-icon>
+        <ion-icon
+          :name="rtcData.isVideoMuted ? 'videocam-off' : 'videocam'"
+        ></ion-icon>
       </button>
     </div>
     <div class="buttons" v-else>
@@ -72,20 +96,16 @@ const position = computed(() => {
 });
 
 watch(rtcData, () => {
-  console.log("RTC DATA CHANGED FROM CALL");
-  if (rtcData.otherVideoStream) {
-    console.log("adding vidoe ref", rtcData.otherVideoStream);
-    console.log(
-      "other stream recieved"
-    );
-    otherVideoRef.value.srcObject = rtcData.otherVideoStream;
-  } else if (rtcData.myVideoStream) {
-    myVideoRef.value.srcObject = rtcData.myVideoStream;
-  } else if (rtcData.myScreenStream) {
-    myScreenRef.value.srcObject = rtcData.myScreenStream;
-  } else if (rtcData.otherScreenStream) {
-    otherScreenRef.value.srcObject = rtcData.otherScreenStream;
-  }
+  otherVideoRef.value.srcObject = rtcData.otherVideoStream;
+  myVideoRef.value.srcObject = rtcData.myVideoStream;
+  myScreenRef.value.srcObject = rtcData.myScreenStream;
+  otherScreenRef.value.srcObject = rtcData.otherScreenStream;
+
+  console.log(
+    "Changing Streams ",
+    rtcData.otherVideoStream,
+    rtcData.myVideoStream
+  );
 });
 </script>
 
@@ -165,7 +185,8 @@ watch(rtcData, () => {
     flex-wrap: wrap;
 
     video {
-      width: 150px;
+      max-width: 150px;
+      // max-height: 150px;
     }
 
     .hidden {

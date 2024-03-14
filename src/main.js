@@ -2,8 +2,8 @@ import './assets/main.scss'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import { VueFire, VueFireAuth } from 'vuefire'
-import { app as firebaseApp } from './firebaseConfig'
+    import { VueFire, VueFireAuth } from 'vuefire'
+    import { app as firebaseApp } from './firebaseConfig'
 import { createVCodeBlock } from '@wdns/vue-code-block';
 
 import App from './App.vue'

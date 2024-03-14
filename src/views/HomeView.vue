@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <SideBar @selectFriend="selectFriend" />
+    <SideBar @selectFriend="selectFriend" @selectGroup="selectGroup" />
     <div class="container">
       <Chat v-if="activeFriend" :calling="false" :friend="activeFriend" />
       <div class="empty" v-else>
@@ -28,11 +28,19 @@ const router = useRouter();
 const currentUser = await getCurrentUser();
 // const rtcData = useNewRtcDataStore();
 const activeFriend = ref(null);
+const activeGroup = ref(null);
 
 const selectFriend = (friend) => {
   activeFriend.value = null;
   setTimeout(() => {
     activeFriend.value = friend;
+  }, 10);
+};
+
+const selectGroup = (group) => {
+  activeGroup.value = null;
+  setTimeout(() => {
+    activeGroup.value = group;
   }, 10);
 };
 

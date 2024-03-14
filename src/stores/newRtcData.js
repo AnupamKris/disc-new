@@ -8,6 +8,7 @@ import {
 } from "@tauri-apps/api/fs";
 import { arrayUnion, doc, updateDoc } from "firebase/firestore";
 import { useFirestore } from "vuefire";
+import { sep } from "@tauri-apps/api/path";
 
 export const useNewRtcDataStore = defineStore("newRtcData", () => {
   const db = useFirestore();
@@ -33,6 +34,8 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
   const otherAudioStream = ref(null);
   const otherVideoStream = ref(null);
   const otherScreenStream = ref(null);
+  const audioInputDevice = ref("default");
+  const videoInputDevice = ref("default");
 
   const isConnected = ref(false);
   const isCallIncoming = ref(false);
@@ -70,9 +73,48 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     sendChatNotification(username);
   };
 
+  const setDefaultDevices = async (audioD, videoD) => {
+    if (audioD) {
+      audioInputDevice.value = audioD;
+    }
+    if (videoD) {
+      videoInputDevice.value = videoD;
+      if (myVideoStream.value) {
+        myVideoStream.value = null;
+        navigator.mediaDevices
+          .getUserMedia({
+            video: {
+              deviceId: videoD,
+            },
+          })
+          .then((stream) => {
+            myVideoStream.value = stream;
+            ongoingCall.addStream(myVideoStream.value, {
+              id: "video",
+            });
+          });
+      }
+    }
+
+    localStorage.setItem("audioDevice", audioD);
+    localStorage.setItem("videoDevice", videoD);
+
+    console.log(audioD, videoD, audioInputDevice.value, videoInputDevice.value);
+  };
+
   const setupDevicesList = async () => {
     let devices = await navigator.mediaDevices.enumerateDevices();
+
     // get devices with unique groupId
+    let savedAudioDevice = localStorage.getItem("audioDevice");
+    let savedVideoDevice = localStorage.getItem("videoDevice");
+
+    if (savedAudioDevice) {
+      audioInputDevice.value = savedAudioDevice;
+    }
+    if (savedVideoDevice) {
+      videoInputDevice.value = savedVideoDevice;
+    }
 
     console.log(devices, "devices");
     devices.forEach((device) => {
@@ -93,9 +135,21 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
   };
 
   const createPeerConnection = (id) => {
+    // return;
     console.log("Creating peer connection", id);
+    // try {
     artico = new Artico({
       id: id,
+    });
+    // } catch (error) {
+    //   console.log("Error in creating peer connection", error);
+    // }
+
+    artico.on("error", (err) => {
+      console.log(err);
+      if (err.message === "id-taken") {
+        alert("You are already logged in from another tab or device");
+      }
     });
 
     setupDevicesList();
@@ -198,6 +252,12 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
         }
       }, 1000 * 30);
 
+      call.on("removestream", (stream, metadata) => {
+        console.log("Stream removed: ", stream, metadata);
+        if (metadata.id == "audio") otherAudioStream.value = null;
+        else if (metadata.id == "video") otherVideoStream.value = null;
+      });
+
       call.on("close", () => {
         console.log("Call closed");
         isCallIncoming.value = false;
@@ -207,7 +267,9 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
         otherAudioStream.value = null;
         myVideoStream.value = null;
         otherVideoStream.value = null;
-        
+
+        isAudioMuted.value = false;
+        isVideoMuted.value = true;
       });
 
       call.on("stream", (stream, metadata) => {
@@ -227,6 +289,8 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
   };
 
   const callPeer = async (peerId, stream) => {
+    isMuted.value = false;
+    isVideoMuted.value = true;
     let call = artico.call(peerId, {
       username: connectionId.value,
     });
@@ -269,9 +333,11 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
       isCallInProgress.value = false;
       isCallOutgoing.value = false;
       myAudioStream.value = null;
-        otherAudioStream.value = null;
-        myVideoStream.value = null;
-        otherVideoStream.value = null;
+      otherAudioStream.value = null;
+      myVideoStream.value = null;
+      isAudioMuted.value = false;
+      isVideoMuted.value = true;
+      otherVideoStream.value = null;
     });
   };
 
@@ -300,18 +366,25 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
         // otherAudioStream.value = stream;
       });
 
-      
+      ongoingCall.on("removestream", (stream, metadata) => {
+        console.log("Stream removed: ", stream);
+        if (metadata.id == "audio") otherAudioStream.value = null;
+        else if (metadata.id == "video") otherVideoStream.value = null;
+      });
 
       ongoingCall.on("close", () => {
         console.log("Call closed");
         isCallInProgress.value = false;
         isCallIncoming.value = false;
         callerId.value = "";
-        
+
         myAudioStream.value = null;
         otherAudioStream.value = null;
         myVideoStream.value = null;
         otherVideoStream.value = null;
+
+        isAudioMuted.value = false;
+        isVideoMuted.value = true;
       });
     });
   };
@@ -333,23 +406,32 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     isVideoMuted.value = !isVideoMuted.value;
     let devs = await navigator.mediaDevices.enumerateDevices();
     console.log(devs, "---");
-    if (!myVideoStream.value && !isVideoMuted.value) {
+    if (!isVideoMuted.value) {
       console.log("Getting video stream and adding");
-      myVideoStream.value = await navigator.mediaDevices.getUserMedia({
-        video: true,
-      });
-      ongoingCall.addStream(myVideoStream.value, {
-        id: "video",
-      });
-      
-    } else if (myVideoStream.value && isVideoMuted.value) {
+      console.log("Starrting  Cideo with device", videoInputDevice.value);
+      navigator.mediaDevices
+        .getUserMedia({
+          video: {
+            deviceId: videoInputDevice.value,
+          },
+        })
+        .then((stream) => {
+          console.log("GOT A NEW VIDEO!", stream);
+          myVideoStream.value = stream;
+          ongoingCall.addStream(myVideoStream.value, {
+            id: "video",
+          });
+        });
+      // myVideoStream.value = myvid;
+      // ongoingCall.addStream(myVideoStream.value, {
+      //   id: "video",
+      // });
+    } else {
       console.log("Removing video stream");
-      ongoingCall.removeStream(myVideoStream.value);
-    } else if (myVideoStream.value && !isVideoMuted.value) {
-      console.log("Adding video stream");
-      ongoingCall.addStream(myVideoStream.value, {
+      ongoingCall.removeStream(myVideoStream.value, {
         id: "video",
       });
+      myVideoStream.value = null;
     }
   };
 
@@ -487,7 +569,7 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
         call.send(chunk);
       });
     });
-  }
+  };
 
   return {
     ongoingCall,
@@ -507,6 +589,8 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     transferFileName,
     audioDevices,
     videoDevices,
+    audioInputDevice,
+    videoInputDevice,
 
     isCallIncoming,
     isMuted,
@@ -525,5 +609,6 @@ export const useNewRtcDataStore = defineStore("newRtcData", () => {
     rejectCall,
     sendChatNotification,
     sendFile,
+    setDefaultDevices,
   };
 });
