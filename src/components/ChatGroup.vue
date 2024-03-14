@@ -1,11 +1,11 @@
 <template>
   <div class="chat" @dragover="checkDrag">
     <div class="title">
-      <h2>{{ friend.username }}</h2>
+      <h2>{{ group.name }}</h2>
       <div class="buttons">
-        <div class="call" @click="callFriend">
-          <ion-icon name="call"></ion-icon>
-        </div>
+          <!-- <div class="call" @click="callFriend">
+            <ion-icon name="call"></ion-icon>
+          </div> -->
       </div>
     </div>
     <div class="chats" v-if="chats" ref="chatsRef">
@@ -91,16 +91,18 @@ const chatsRef = ref(null);
 
 
 const props = defineProps({
-  friend: Object,
+  group: Object,
   calling: Boolean,
 });
+
+console.log(props.group);
 
 
 const emit = defineEmits(["rejectCall", "acceptCall",]);
 
 const callFriend = async () => {
   let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  rtcData.callPeer(props.friend.username, stream);
+  rtcData.callPeer(props.group.username, stream);
 };
 
 const formatMessage = (msg) => {
@@ -146,7 +148,8 @@ const getImageIntoDataUrl = async (file, downloads) => {
 };
 
 const currentUser = await getCurrentUser();
-const chats = useDocument(doc(db, "chats", props.friend.chatId));
+const chats = useDocument(doc(db, "chats", props.group.chatId));
+const groupData = useDocument(doc(db, "groups", props.group.id));
 
 const convertTimestampToDate = (timestamp) => {
   //   console.log(timestamp, Date(timestamp));
@@ -178,8 +181,8 @@ const sendChat = async (e) => {
   e.preventDefault();
   if (chatInput.value !== "") {
     console.log("-", chatInput.value);
-    let chatRef = doc(db, "chats", props.friend.chatId);
-    console.log(props.friend.chatId, "chatRef");
+    let chatRef = doc(db, "chats", props.group.chatId);
+    console.log(props.group.chatId, "chatRef");
     let chatData = {
       message: chatInput.value,
       sender: currentUser.displayName,
@@ -190,7 +193,7 @@ const sendChat = async (e) => {
       messages: arrayUnion(chatData),
     });
 
-    rtcData.sendChatNotification(props.friend.username);
+    rtcData.sendChatNotification(props.group.name);
     chatsRef.value.scrollTop = chatsRef.value.scrollHeight;
   }
 };
@@ -206,7 +209,7 @@ const attachFile = async () => {
   rtcData.isTransferInProgress = true;
   // let file = await readBinaryFile(path);
   // console.log(filename);
-  rtcData.sendFile(props.friend.username, props.friend.chatId, path, filename);
+  rtcData.sendFile(props.group.username, props.group.chatId, path, filename);
 };
 
 const pasteContent = (e) => {
@@ -219,7 +222,7 @@ const pasteContent = (e) => {
     if (items[i].kind === "file") {
       let file = items[i].getAsFile();
       console.log(file);
-      rtcData.sendFile(props.friend.username, props.friend.chatId, file, file.name);
+      rtcData.sendFile(props.group.username, props.group.chatId, file, file.name);
     }
   }
 };
@@ -253,7 +256,7 @@ watch(chats, (newVal) => {
 watch(rtcData, (newVal) => {
   if (transferStarted.value && !newVal.isTransferInProgress) {
     transferStarted.value = false;
-  } else if (rtcData.notficationChats.includes(props.friend.username)) {
+  } else if (rtcData.notficationChats.includes(props.group.username)) {
     chatsRef.value.scrollTop = chatsRef.value.scrollHeight;
   }
 });

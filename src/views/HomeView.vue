@@ -3,6 +3,8 @@
     <SideBar @selectFriend="selectFriend" @selectGroup="selectGroup" />
     <div class="container">
       <Chat v-if="activeFriend" :calling="false" :friend="activeFriend" />
+      <ChatGroup v-else-if="activeGroup" :group="activeGroup" />
+
       <div class="empty" v-else>
         Woah! It's lonely in here. <br />
         Don't you have any friends to chat with?

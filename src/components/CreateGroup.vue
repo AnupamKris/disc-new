@@ -46,19 +46,28 @@ const createGroup = async () => {
     //   uid: currentUser.uid,
     //   frusername: username.value,
     // });
+    let chatObj = await addDoc(collection(db, "chats"), {
+      messages: [],
+    });
+    let chatId = await chatObj.id;
 
     let selfDocRef = doc(db, "users", currentUser.uid);
     let grp = await addDoc(collection(db, "groups"), {
       name: groupname.value,
       members: [currentUser.uid],
       owner: currentUser.uid,
+      chatId: chatId,
     });
+
     await updateDoc(selfDocRef, {
       groups: arrayUnion({
         name: groupname.value,
         id: await grp.id,
+        chatId: chatId,
       }),
     });
+
+    emit("close");
   }
 };
 

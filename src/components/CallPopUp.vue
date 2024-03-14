@@ -1,13 +1,14 @@
 <template>
   <div
     class="popup"
+    :class="{ fullscreen: isFullScreen }"
     @mousedown="startDrag"
     @mousemove="drag"
     @mouseleave="stopDrag"
     @mouseup="stopDrag"
     :style="position"
   >
-    <div class="title">
+    <div class="title" @dblclick="toggleFullScreen">
       <h2>{{ rtcData.callerId }}</h2>
     </div>
     <div class="video-streams">
@@ -67,6 +68,12 @@ const myVideoRef = ref(null);
 const otherVideoRef = ref(null);
 const myScreenRef = ref(null);
 const otherScreenRef = ref(null);
+
+const isFullScreen = ref(false);
+
+const toggleFullScreen = () => {
+  isFullScreen.value = !isFullScreen.value;
+};
 
 const pos = ref({
   bottom: 10,

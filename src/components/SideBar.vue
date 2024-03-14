@@ -193,6 +193,8 @@ const selectFriend = (friend) => {
 
 const selectGroup = (group) => {
   console.log(group);
+  // let groupDoc = doc(db, "groups", group.id);
+
   emit("selectGroup", group);
   removeNotification(group.name);
 };
